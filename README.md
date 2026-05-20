@@ -96,5 +96,3 @@ Las contribuciones son bienvenidas. Sigue estos pasos:
 Este proyecto está bajo la licencia MIT. Consulta el archivo `LICENSE` para más detalles.
 
 ---
-
-*Hecho con ❤️ por **Jairo Ortiz**.*
