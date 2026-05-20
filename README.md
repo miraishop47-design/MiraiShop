@@ -1,36 +1,100 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Proyecto MiraiShop
 
-## Getting Started
+![Next.js](https://img.shields.io/badge/Next.js-16.2.6-brightgreen) ![React](https://img.shields.io/badge/React-19.2.4-blue) ![Node.js](https://img.shields.io/badge/Node-20.x-green)
 
-First, run the development server:
+## 🛠️ Descripción
 
+Este es un proyecto **Next.js** (versión 16) que implementa una tienda online llamada **MiraiShop**. La aplicación está basada en el nuevo **App Router** de Next.js, utiliza **TailwindCSS** para el estilo y **Prisma** como ORM para la base de datos. También integra **Firebase** para autenticación y **bcryptjs** para el hashing de contraseñas.
+
+## 🚀 Empezar rápidamente
+
+### Prerrequisitos
+
+- **Node.js** (versión 20 o superior) 
+- **npm**, **yarn**, **pnpm** o **bun** (elige el que prefieras)
+- **Git**
+
+### Instalación
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Clona el repositorio
+git clone https://github.com/jairoortiz19/MiraiShop.git
+cd MiraiShop
+
+# Instala dependencias
+npm install    # o `yarn`, `pnpm install`, `bun install`
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Configurar variables de entorno
+Copia el archivo de ejemplo y rellena los valores necesarios:
+```bash
+cp .env.example .env
+# Edita .env con tus credenciales de Firebase, base de datos, etc.
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Base de datos
+```bash
+# Genera el cliente Prisma
+npx prisma generate
+# Aplica migraciones (crea la base de datos sqlite por defecto)
+npx prisma migrate dev --name init
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Ejecutar en modo desarrollo
+```bash
+npm run dev   # o `yarn dev`, `pnpm dev`, `bun dev`
+```
+Visita **http://localhost:3000** en tu navegador.
 
-## Learn More
+## 📦 Scripts disponibles
+| Script | Descripción |
+|--------|-------------|
+| `dev`   | Inicia el servidor de desarrollo (`next dev`). |
+| `build` | Compila la aplicación para producción (`next build`). |
+| `start` | Inicia la aplicación en modo producción (`next start`). |
+| `lint`  | Ejecuta ESLint sobre el código. |
 
-To learn more about Next.js, take a look at the following resources:
+## 🧩 Tecnologías usadas
+- **Next.js 16** – Framework React con renderizado híbrido.
+- **React 19** – Biblioteca UI.
+- **TailwindCSS 4** – Utility‑first CSS.
+- **Prisma 6** – ORM y migraciones de base de datos.
+- **Firebase** – Autenticación y hosting opcional.
+- **bcryptjs** – Hashing de contraseñas.
+- **TypeScript** – Tipado estático.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📂 Estructura del proyecto
+```
+.
+├─ public/                # Recursos estáticos (imágenes, favicon, etc.)
+├─ src/                   # Código fuente de la app (pages, componentes, lib)
+├─ prisma/                # Esquema y migraciones de la base de datos
+├─ .env.example           # Ejemplo de variables de entorno
+├─ next.config.ts         # Configuración de Next.js
+├─ tailwind.config.cjs    # Configuración de Tailwind
+└─ README.md              # Este archivo
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📦 Despliegue
+Puedes desplegar la aplicación directamente en **Vercel** (la plataforma oficial de Next.js) con un solo clic:
 
-## Deploy on Vercel
+[![Deploy on Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repo=https://github.com/jairoortiz19/MiraiShop)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+O bien, construir y servir los archivos estáticos en cualquier servidor Node.js:
+```bash
+npm run build
+npm start
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🤝 Contribuir
+Las contribuciones son bienvenidas. Sigue estos pasos:
+1. Haz fork del repositorio.
+2. Crea una rama para tu feature (`git checkout -b feature/mi-feature`).
+3. Realiza tus cambios y escribe pruebas si corresponde.
+4. Envía un Pull Request describiendo los cambios.
+
+## 📜 Licencia
+Este proyecto está bajo la licencia MIT. Consulta el archivo `LICENSE` para más detalles.
+
+---
+
+*Hecho con ❤️ por **Jairo Ortiz**.*
