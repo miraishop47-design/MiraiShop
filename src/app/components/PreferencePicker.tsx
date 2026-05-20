@@ -15,7 +15,7 @@ interface Category {
 const CATEGORIES: Category[] = [
   {
     id: 'geek',
-    label: 'Cultura Geek',
+    label: 'Gamer',
     emoji: '🎮',
     color: 'from-violet-500 to-purple-600',
     items: ['Anime', 'Gaming', 'Pokémon', 'Marvel', 'DC', 'Star Wars', 'Harry Potter', 'Manga', 'Funko Style', 'Retro Gaming'],

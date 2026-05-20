@@ -8,7 +8,7 @@ import { productService } from '../../application/services/productService';
 import { Product } from '../../domain/entities/Product';
 
 const CATEGORIES = [
-  'Cultura Geek',
+  'Gamer',
   'Decoración',
   'Tecnología',
   'Hogar',
