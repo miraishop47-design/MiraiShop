@@ -85,13 +85,6 @@ npm run build
 npm start
 ```
 
-## 🤝 Contribuir
-Las contribuciones son bienvenidas. Sigue estos pasos:
-1. Haz fork del repositorio.
-2. Crea una rama para tu feature (`git checkout -b feature/mi-feature`).
-3. Realiza tus cambios y escribe pruebas si corresponde.
-4. Envía un Pull Request describiendo los cambios.
-
 ## 📜 Licencia
 Este proyecto está bajo la licencia MIT. Consulta el archivo `LICENSE` para más detalles.
 
