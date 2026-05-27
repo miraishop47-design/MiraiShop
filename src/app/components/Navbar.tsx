@@ -20,7 +20,7 @@ export default function Navbar() {
             <Link href="/productos" className="hidden sm:inline-block text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
               Productos
             </Link>
-            {user && (user.email === 'miraishop47@gmail.com' || user.email === 'ariaacris73@gmail.com') && (
+            {user && (user.email === 'miraishop47@gmail.com' || user.email === 'miraishop47@gmail.com') && (
               <Link href="/admin" className="hidden sm:inline-block text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                 Administrar
               </Link>

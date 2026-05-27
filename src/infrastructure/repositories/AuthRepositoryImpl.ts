@@ -22,7 +22,7 @@ export class AuthRepositoryImpl implements AuthRepository {
       id: user.id,
       name: user.name,
       email: user.email,
-      role: (email === 'ariaacris73@gmail.com' || email === 'miraishop47@gmail.com') ? 'admin' : 'customer',
+      role: (email === 'miraishop47@gmail.com' || email === 'miraishop47@gmail.com') ? 'admin' : 'customer',
     };
   }
 
@@ -49,7 +49,7 @@ export class AuthRepositoryImpl implements AuthRepository {
       id: user.id,
       name: user.name,
       email: user.email,
-      role: (email === 'ariaacris73@gmail.com' || email === 'miraishop47@gmail.com') ? 'admin' : role,
+      role: (email === 'miraishop47@gmail.com' || email === 'miraishop47@gmail.com') ? 'admin' : role,
     };
   }
 

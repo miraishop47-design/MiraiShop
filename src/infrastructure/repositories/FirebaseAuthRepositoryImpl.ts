@@ -15,8 +15,14 @@ export class FirebaseAuthRepositoryImpl implements AuthRepository {
     const firebaseUser = userCredential.user;
 
     let role: 'customer' | 'reseller' | 'admin' = 'customer';
-    if (firebaseUser.email === 'ariaacris73@gmail.com' || firebaseUser.email === 'miraishop47@gmail.com') {
+    if (firebaseUser.email === 'miraishop47@gmail.com') {
       role = 'admin';
+      // Persist admin role to Firestore so it's always saved
+      await setDoc(doc(db, 'usuarios', firebaseUser.uid), {
+        role: 'admin',
+        email: firebaseUser.email,
+        name: firebaseUser.displayName || 'Admin',
+      }, { merge: true });
     } else {
       const userDoc = await getDoc(doc(db, 'usuarios', firebaseUser.uid));
       if (userDoc.exists()) {
@@ -41,7 +47,7 @@ export class FirebaseAuthRepositoryImpl implements AuthRepository {
       displayName: name,
     });
 
-    const finalRole = (email === 'ariaacris73@gmail.com' || email === 'miraishop47@gmail.com') ? 'admin' : role;
+    const finalRole: 'customer' | 'reseller' | 'admin' = (email === 'miraishop47@gmail.com') ? 'admin' : role;
 
     // Save user role profile to Firestore
     await setDoc(doc(db, 'usuarios', firebaseUser.uid), {

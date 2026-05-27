@@ -71,8 +71,8 @@ export default function ProductosPage() {
         <div className="text-center p-12 bg-red-50/50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-3xl max-w-md mx-auto">
           <p className="text-red-600 dark:text-red-400 font-bold mb-2">Ocurrió un error al cargar los productos</p>
           <p className="text-xs text-red-500 dark:text-red-300 mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
+          <button
+            onClick={() => window.location.reload()}
             className="bg-red-600 text-white px-5 py-2 rounded-xl text-sm font-bold"
           >
             Reintentar

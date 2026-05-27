@@ -32,7 +32,7 @@ export default function AdminOrdersPage() {
     if (!loading) {
       if (!user) {
         router.push('/auth/login');
-      } else if (user.email !== 'ariaacris73@gmail.com' && user.email !== 'miraishop47@gmail.com') {
+      } else if (user.email !== 'miraishop47@gmail.com' && user.email !== 'miraishop47@gmail.com') {
         router.push('/');
       }
     }
@@ -40,7 +40,7 @@ export default function AdminOrdersPage() {
 
   // Subscribe to Firestore Orders in Real-Time
   useEffect(() => {
-    if (!user || (user.email !== 'ariaacris73@gmail.com' && user.email !== 'miraishop47@gmail.com')) return;
+    if (!user || (user.email !== 'miraishop47@gmail.com' && user.email !== 'miraishop47@gmail.com')) return;
 
     try {
       const unsubscribe = orderService.subscribeOrders((updatedOrders) => {
@@ -78,7 +78,7 @@ export default function AdminOrdersPage() {
     .filter(o => ['confirmado', 'enviado', 'entregado'].includes(o.status))
     .reduce((sum, o) => sum + o.total, 0);
 
-  if (loading || !user || (user.email !== 'ariaacris73@gmail.com' && user.email !== 'miraishop47@gmail.com')) {
+  if (loading || !user || (user.email !== 'miraishop47@gmail.com' && user.email !== 'miraishop47@gmail.com')) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50/50 dark:bg-gray-955/50">
         <div className="text-center space-y-4">

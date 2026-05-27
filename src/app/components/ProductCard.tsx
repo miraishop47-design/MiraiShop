@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { UIProduct } from '../../application/utils/productTransformer';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -16,6 +16,7 @@ const formatCOP = (value: number) =>
 export default function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
   const { user } = useAuth();
+  const router = useRouter();
   const isOutOfStock = product.stock <= 0;
   const mainImage = product.imagen || 'https://images.unsplash.com/photo-1612036781124-847f8939b154?auto=format&fit=crop&w=800&q=80';
 
@@ -97,13 +98,16 @@ export default function ProductCard({ product }: ProductCardProps) {
               {isOutOfStock ? 'Agotado' : 'Agregar al carrito'}
             </button>
           ) : (
-            <Link
-              href={user ? "/productos" : "/auth/login"}
-              onClick={(e) => e.stopPropagation()}
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                router.push(user ? '/productos' : '/auth/login');
+              }}
               className="w-full py-3.5 rounded-2xl font-bold transition-all text-sm shadow-md flex items-center justify-center gap-2 active:scale-97 mt-5 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 dark:from-gray-800/40 dark:to-gray-800 text-gray-700 dark:text-gray-300 text-center"
             >
               {user ? 'Cuenta Minorista' : 'Iniciar sesión para comprar'}
-            </Link>
+            </button>
           )}
         </div>
       </div>

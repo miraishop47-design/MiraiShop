@@ -7,7 +7,7 @@ import { LoginUseCase } from '../../application/use-cases/LoginUseCase';
 import { RegisterUseCase } from '../../application/use-cases/RegisterUseCase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../../infrastructure/firebase/firebaseConfig';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 interface AuthContextType {
   user: User | null;
@@ -33,8 +33,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         let role: 'customer' | 'reseller' | 'admin' = 'customer';
-        if (firebaseUser.email === 'ariaacris73@gmail.com' || firebaseUser.email === 'miraishop47@gmail.com') {
+        if (firebaseUser.email === 'miraishop47@gmail.com') {
           role = 'admin';
+          // Ensure admin role is always persisted in Firestore
+          try {
+            await setDoc(doc(db, 'usuarios', firebaseUser.uid), { role: 'admin' }, { merge: true });
+          } catch (e) {
+            console.error('Error persisting admin role', e);
+          }
         } else {
           try {
             const userDoc = await getDoc(doc(db, 'usuarios', firebaseUser.uid));
