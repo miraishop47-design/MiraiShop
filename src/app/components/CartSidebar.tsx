@@ -3,9 +3,13 @@
 import React from 'react';
 import Link from 'next/link';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function CartSidebar() {
   const { cart, isCartOpen, setIsCartOpen, updateQuantity, removeFromCart, clearCart, cartTotal } = useCart();
+  const { user } = useAuth();
+
+  const showPrice = user && (user.role === 'reseller' || user.role === 'admin');
 
   const formatCOP = (value: number) =>
     new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value);
@@ -54,7 +58,7 @@ export default function CartSidebar() {
                   </div>
                   <div className="flex-grow min-w-0">
                     <h4 className="font-bold text-sm text-gray-900 dark:text-white truncate">{item.nombre}</h4>
-                    <p className="text-xs text-indigo-500 font-semibold mt-0.5">{formatCOP(item.precio)}</p>
+                    <p className="text-xs text-indigo-500 font-semibold mt-0.5">{showPrice ? formatCOP(item.precio) : 'Solo mayoristas'}</p>
                     
                     {/* Quantity Controls */}
                     <div className="flex items-center gap-2 mt-2">
@@ -91,7 +95,7 @@ export default function CartSidebar() {
             <div className="px-6 py-6 bg-gray-50 dark:bg-gray-950 border-t border-gray-100 dark:border-gray-800 space-y-4">
               <div className="flex items-center justify-between font-bold text-gray-900 dark:text-white text-base">
                 <span>Total Estimado:</span>
-                <span className="text-indigo-600 dark:text-indigo-400">{formatCOP(cartTotal)}</span>
+                <span className="text-indigo-600 dark:text-indigo-400">{showPrice ? formatCOP(cartTotal) : 'Oculto'}</span>
               </div>
               
               <div className="grid grid-cols-2 gap-3">

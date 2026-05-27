@@ -53,6 +53,8 @@ export default function ProductDetailPage() {
   // Enforce active status redirect if user is not admin
   const isDenied = rawProduct && rawProduct.activo === false && user?.role !== 'admin';
 
+  const showPrice = user && (user.role === 'reseller' || user.role === 'admin');
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-pulse">
@@ -165,57 +167,81 @@ export default function ProductDetailPage() {
             <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-4 leading-tight tracking-tight">
               {product.nombre}
             </h1>
-            <p className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500 mb-8 inline-block">
-              {formatCOP(product.precio)}
-            </p>
+            {showPrice ? (
+              <p className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500 mb-8 inline-block">
+                {formatCOP(product.precio)}
+              </p>
+            ) : (
+              <p className="text-xl font-bold text-gray-500 dark:text-gray-400 italic mb-8">
+                Precios disponibles solo para cuentas mayoristas.
+              </p>
+            )}
             <p className="text-gray-600 dark:text-gray-300 mb-10 leading-relaxed text-lg whitespace-pre-line">
               {product.descripcion}
             </p>
 
-            <div className="mb-10 p-5 bg-gray-50 dark:bg-gray-800/50 rounded-3xl border border-gray-100 dark:border-gray-800">
-              <div className="flex items-center justify-between mb-4">
-                <span className="font-bold text-gray-700 dark:text-gray-300">Cantidad a comprar</span>
-                <span className={`text-xs font-bold px-3.5 py-1.5 rounded-full ${isOutOfStock ? 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400' : product.stock > 10 ? 'bg-green-100 text-green-700 dark:bg-green-955/30 dark:text-green-400' : 'bg-orange-100 text-orange-700 dark:bg-orange-950/30 dark:text-orange-400'}`}>
-                  {isOutOfStock ? 'No disponible' : `${product.stock} disponibles`}
-                </span>
-              </div>
-              <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-6">
-                <div className="flex items-center border-2 border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden bg-white dark:bg-gray-900 w-fit">
-                  <button
-                    onClick={handleDecrease}
-                    disabled={isOutOfStock}
-                    className="px-5 py-3 text-gray-600 dark:text-gray-305 hover:bg-gray-100 dark:hover:bg-gray-800 transition font-bold text-xl active:bg-gray-200 dark:active:bg-gray-700 disabled:opacity-50"
-                  >
-                    -
-                  </button>
-                  <span className="px-6 py-3 font-bold text-gray-900 dark:text-white w-16 text-center border-x-2 border-gray-200 dark:border-gray-800 text-xl">
-                    {isOutOfStock ? 0 : quantity}
-                  </span>
-                  <button
-                    onClick={handleIncrease}
-                    disabled={isOutOfStock}
-                    className="px-5 py-3 text-gray-650 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition font-bold text-xl active:bg-gray-200 dark:active:bg-gray-700 disabled:opacity-50"
-                  >
-                    +
-                  </button>
+            {showPrice ? (
+              <>
+                <div className="mb-10 p-5 bg-gray-50 dark:bg-gray-800/50 rounded-3xl border border-gray-100 dark:border-gray-800">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="font-bold text-gray-700 dark:text-gray-300">Cantidad a comprar</span>
+                    <span className={`text-xs font-bold px-3.5 py-1.5 rounded-full ${isOutOfStock ? 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400' : product.stock > 10 ? 'bg-green-100 text-green-700 dark:bg-green-955/30 dark:text-green-400' : 'bg-orange-100 text-orange-700 dark:bg-orange-950/30 dark:text-orange-400'}`}>
+                      {isOutOfStock ? 'No disponible' : `${product.stock} disponibles`}
+                    </span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-6">
+                    <div className="flex items-center border-2 border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden bg-white dark:bg-gray-900 w-fit">
+                      <button
+                        onClick={handleDecrease}
+                        disabled={isOutOfStock}
+                        className="px-5 py-3 text-gray-600 dark:text-gray-305 hover:bg-gray-100 dark:hover:bg-gray-800 transition font-bold text-xl active:bg-gray-200 dark:active:bg-gray-700 disabled:opacity-50"
+                      >
+                        -
+                      </button>
+                      <span className="px-6 py-3 font-bold text-gray-900 dark:text-white w-16 text-center border-x-2 border-gray-200 dark:border-gray-800 text-xl">
+                        {isOutOfStock ? 0 : quantity}
+                      </span>
+                      <button
+                        onClick={handleIncrease}
+                        disabled={isOutOfStock}
+                        className="px-5 py-3 text-gray-650 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition font-bold text-xl active:bg-gray-200 dark:active:bg-gray-700 disabled:opacity-50"
+                      >
+                        +
+                      </button>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Total a pagar</span>
+                      <span className="text-2xl font-black text-gray-900 dark:text-white">
+                        {formatCOP(isOutOfStock ? 0 : product.precio * quantity)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Total a pagar</span>
-                  <span className="text-2xl font-black text-gray-900 dark:text-white">
-                    {formatCOP(isOutOfStock ? 0 : product.precio * quantity)}
-                  </span>
-                </div>
-              </div>
-            </div>
 
-            <button 
-              onClick={() => product && addToCart(product, quantity)}
-              disabled={isOutOfStock}
-              className="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-[length:200%_auto] hover:bg-right disabled:from-gray-400 disabled:to-gray-500 disabled:shadow-none text-white font-black py-4.5 rounded-2xl shadow-xl shadow-indigo-500/20 hover:shadow-indigo-500/40 transition-all duration-500 transform hover:-translate-y-1 active:translate-y-0 text-lg flex justify-center items-center gap-3 active:scale-[0.99] disabled:transform-none disabled:active:scale-100"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-              {isOutOfStock ? 'Sin Stock Disponible' : 'Agregar al Carrito'}
-            </button>
+                <button 
+                  onClick={() => product && addToCart(product, quantity)}
+                  disabled={isOutOfStock}
+                  className="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-[length:200%_auto] hover:bg-right disabled:from-gray-400 disabled:to-gray-500 disabled:shadow-none text-white font-black py-4.5 rounded-2xl shadow-xl shadow-indigo-500/20 hover:shadow-indigo-500/40 transition-all duration-500 transform hover:-translate-y-1 active:translate-y-0 text-lg flex justify-center items-center gap-3 active:scale-[0.99] disabled:transform-none disabled:active:scale-100"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                  {isOutOfStock ? 'Sin Stock Disponible' : 'Agregar al Carrito'}
+                </button>
+              </>
+            ) : (
+              <div className="space-y-4">
+                <Link
+                  href={user ? "/productos" : "/auth/login"}
+                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black py-4 rounded-2xl shadow-lg transition-all text-center block text-lg active:scale-[0.99]"
+                >
+                  {user ? 'Volver a productos' : 'Iniciar sesión para comprar'}
+                </Link>
+                {user && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center font-medium">
+                    Tu cuenta está registrada como minorista. Si eres distribuidor, contáctanos para activar tu cuenta mayorista.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
