@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { UIProduct } from '../../application/utils/productTransformer';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useFavorite } from '../context/FavoriteContext';
 import { PackageOption } from '../../domain/entities/Product';
 
 interface ProductCardProps {
@@ -32,6 +33,7 @@ const getPackageOptions = (prod: UIProduct): PackageOption[] => {
 export default function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
   const { user } = useAuth();
+  const { isFavorite, toggleFavorite } = useFavorite();
   const router = useRouter();
 
   const isReseller = user?.role === 'reseller' || user?.role === 'admin';
@@ -45,6 +47,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const mainImage = product.imagen || 'https://images.unsplash.com/photo-1612036781124-847f8939b154?auto=format&fit=crop&w=800&q=80';
 
   const showPrice = user && (user.role === 'reseller' || user.role === 'admin');
+  const isFav = isFavorite(product.id!);
 
   return (
     <div 
@@ -53,24 +56,45 @@ export default function ProductCard({ product }: ProductCardProps) {
     >
       
       {/* Badges Container */}
-      <div className="absolute top-4 left-4 right-4 z-10 flex flex-wrap gap-2 items-center pointer-events-none">
-        <span className="bg-black/80 text-white text-xs font-semibold px-3.5 py-1.5 rounded-full border border-white/10 tracking-wide pointer-events-none">
-          {product.categoria}
-        </span>
-        
-        {isPack && (
-          <span className="bg-pink-600/95 text-white text-[10px] font-black px-3.5 py-1.5 rounded-full border border-pink-500/30 uppercase tracking-wider pointer-events-none">
-            {options.length === 1 
-              ? `Caja x${options[0].unitsPerPackage} und.` 
-              : `Cajas x${options.map(o => o.unitsPerPackage).join('/')} und.`}
+      <div className="absolute top-4 left-4 right-4 z-20 flex justify-between items-start pointer-events-none">
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="bg-black/80 text-white text-xs font-semibold px-3.5 py-1.5 rounded-full border border-white/10 tracking-wide pointer-events-none">
+            {product.categoria}
           </span>
-        )}
+          
+          {isPack && (
+            <span className="bg-pink-600/95 text-white text-[10px] font-black px-3.5 py-1.5 rounded-full border border-pink-500/30 uppercase tracking-wider pointer-events-none">
+              {options.length === 1 
+                ? `Caja x${options[0].unitsPerPackage} und.` 
+                : `Cajas x${options.map(o => o.unitsPerPackage).join('/')} und.`}
+            </span>
+          )}
 
-        {isMadeToOrder && (
-          <span className="bg-amber-600/95 text-white text-[10px] font-black px-3.5 py-1.5 rounded-full border border-amber-500/20 tracking-wider uppercase pointer-events-none">
-            🛠️ Por pedido
-          </span>
-        )}
+          {isMadeToOrder && (
+            <span className="bg-amber-600/95 text-white text-[10px] font-black px-3.5 py-1.5 rounded-full border border-amber-500/20 tracking-wider uppercase pointer-events-none">
+              🛠️ Por pedido
+            </span>
+          )}
+        </div>
+
+        {/* Favorite Button */}
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleFavorite(product.id!);
+          }}
+          className={`pointer-events-auto p-2 rounded-full backdrop-blur-md border transition-all duration-300 active:scale-95 shadow-md flex-shrink-0 ${
+            isFav 
+              ? 'bg-pink-500/90 border-pink-500 text-white shadow-pink-500/20' 
+              : 'bg-white/70 dark:bg-black/50 border-gray-200/50 dark:border-white/10 text-gray-500 dark:text-gray-300 hover:bg-white dark:hover:bg-black/80'
+          }`}
+          title={isFav ? "Quitar de favoritos" : "Añadir a favoritos"}
+        >
+          <svg className={`w-5 h-5 transition-transform duration-300 ${isFav ? 'scale-110' : 'hover:scale-110'}`} fill={isFav ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={isFav ? '1.5' : '2'} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+          </svg>
+        </button>
       </div>
 
       {/* Image Container */}
@@ -133,18 +157,16 @@ export default function ProductCard({ product }: ProductCardProps) {
             ) : (
               <>
                 <div className="flex flex-col">
-                  <span className="text-[10px] sm:text-xs text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider mb-0.5">
-                    Precio
-                  </span>
-                  <span className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white leading-tight">
-                    Disponible al checkout
+                  
+                  <span className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 leading-tight">
+                    Precios por cotización
                   </span>
                 </div>
                 <div className="text-right">
-                  <span className="hidden sm:block text-xs text-gray-400 font-bold uppercase tracking-wider mb-0.5">Stock</span>
+                  <span className="hidden sm:block text-xs text-gray-400 font-bold uppercase tracking-wider mb-0.5">Disponibilidad</span>
                   <span className={`text-[10px] sm:text-sm font-black ${isOutOfStock ? 'text-red-500' : 'text-emerald-500'}`}>
                     {isMadeToOrder 
-                      ? 'Pedido' 
+                      ? 'Bajo pedido' 
                       : isOutOfStock ? 'Agotado' : `${product.stock} disp.`}
                   </span>
                 </div>
@@ -176,11 +198,12 @@ export default function ProductCard({ product }: ProductCardProps) {
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                router.push(user ? '/productos' : '/auth/login');
+                router.push(`/products/${product.id}`);
               }}
-              className="w-full py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl font-bold transition-all text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 active:scale-95 mt-3 sm:mt-5 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 dark:from-gray-800/40 dark:to-gray-800 text-gray-700 dark:text-gray-300 text-center"
+              className="w-full py-2 sm:py-2.5 rounded-xl sm:rounded-2xl font-medium transition-all duration-300 text-xs sm:text-sm flex items-center justify-center gap-2 mt-3 sm:mt-5 bg-transparent border border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white group-hover:border-indigo-200 dark:group-hover:border-indigo-900/50"
             >
-              {user ? 'Cuenta Minorista' : 'Iniciar sesión'}
+              Ver detalles
+              <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
             </button>
           )}
         </div>

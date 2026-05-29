@@ -248,22 +248,8 @@ export default function CartPage() {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wide">
-                    Ingresa tu Nombre completo
-                  </label>
-                  <input
-                    type="text"
-                    value={guestName}
-                    onChange={(e) => setGuestName(e.target.value)}
-                    placeholder="Ej. Juan Pérez"
-                    disabled={isCheckingOut}
-                    className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 dark:text-white outline-none transition-all font-medium disabled:opacity-50"
-                    required
-                  />
-                  <p className="text-[10px] text-gray-400 leading-normal font-light">
-                    Como no has iniciado sesión, necesitamos tu nombre para redactar tu mensaje de WhatsApp.
-                  </p>
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  <p>Inicia sesión para gestionar tu pedido y opciones de entrega.</p>
                 </div>
               )}
             </div>
@@ -292,9 +278,13 @@ export default function CartPage() {
             {!showPrice ? (
               <Link
                 href={user ? "/productos" : "/auth/login"}
-                className="w-full bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 dark:from-gray-800/40 dark:to-gray-800 text-gray-700 dark:text-gray-300 text-center font-black py-4 px-10 rounded-2xl shadow-xl transition-all block text-lg"
+                className={`w-full text-center font-black py-4 px-10 rounded-2xl shadow-xl transition-all block text-lg ${
+                  user
+                    ? 'bg-transparent border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                    : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-indigo-500/20 active:scale-95'
+                }`}
               >
-                {user ? 'Cuenta Minorista - No puedes comprar' : 'Iniciar sesión para comprar'}
+                {user ? 'Explorar catálogo para cotizar' : 'Iniciar sesión para comprar'}
               </Link>
             ) : (
               <button

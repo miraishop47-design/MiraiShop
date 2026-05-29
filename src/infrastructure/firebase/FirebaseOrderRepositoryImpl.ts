@@ -153,8 +153,23 @@ export class FirebaseOrderRepositoryImpl implements OrderRepository {
       }
     }
 
+    const cleanUndefined = (obj: any): any => {
+      if (Array.isArray(obj)) {
+        return obj.map(cleanUndefined);
+      } else if (obj !== null && typeof obj === 'object') {
+        return Object.fromEntries(
+          Object.entries(obj)
+            .filter(([_, v]) => v !== undefined)
+            .map(([k, v]) => [k, cleanUndefined(v)])
+        );
+      }
+      return obj;
+    };
+
+    const cleanOrder = cleanUndefined(order);
+
     const docRef = await addDoc(this.collectionRef, {
-      ...order,
+      ...cleanOrder,
       status: 'pendiente' as OrderStatus,
       createdAt: serverTimestamp()
     });
@@ -284,7 +299,21 @@ export class FirebaseOrderRepositoryImpl implements OrderRepository {
     }
 
     const docRef = doc(db, 'orders', id);
-    const updatePayload = { ...data };
+    
+    const cleanUndefined = (obj: any): any => {
+      if (Array.isArray(obj)) {
+        return obj.map(cleanUndefined);
+      } else if (obj !== null && typeof obj === 'object') {
+        return Object.fromEntries(
+          Object.entries(obj)
+            .filter(([_, v]) => v !== undefined)
+            .map(([k, v]) => [k, cleanUndefined(v)])
+        );
+      }
+      return obj;
+    };
+    
+    const updatePayload = cleanUndefined({ ...data });
     delete updatePayload.id; // Prevent updating ID
     await updateDoc(docRef, updatePayload);
   }

@@ -3,11 +3,13 @@
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useFavorite } from '../context/FavoriteContext';
 import { useState, useEffect } from 'react';
 
 export default function Navbar() {
   const { user, loading, logout } = useAuth();
   const { setIsCartOpen, cartItemsCount } = useCart();
+  const { favorites } = useFavorite();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Close mobile menu if route changes (optional cleanup)
@@ -38,6 +40,24 @@ export default function Navbar() {
             </div>
           </div>
           <div className="flex space-x-4 items-center">
+            {/* Favorites Trigger Button */}
+            {user && (
+              <Link
+                href="/favoritos"
+                className="relative p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full text-gray-700 dark:text-gray-300 transition-colors"
+                title="Mis Favoritos"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                </svg>
+                {favorites.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-pink-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white dark:border-gray-955 shadow-md">
+                    {favorites.length}
+                  </span>
+                )}
+              </Link>
+            )}
+
             {/* Cart Trigger Button */}
             <button
               onClick={() => setIsCartOpen(true)}
@@ -124,6 +144,11 @@ export default function Navbar() {
                 <Link href="/productos" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center px-4 py-3.5 text-lg font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-xl transition-colors">
                   Catálogo de Productos
                 </Link>
+                {user && (
+                  <Link href="/favoritos" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center px-4 py-3.5 text-lg font-bold text-pink-600 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-900/30 rounded-xl transition-colors">
+                    Mis Favoritos
+                  </Link>
+                )}
                 {user && (user.email === 'miraishop47@gmail.com' || user.email === 'miraishop47@gmail.com') && (
                   <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center px-4 py-3.5 text-lg font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl transition-colors">
                     Panel de Administración

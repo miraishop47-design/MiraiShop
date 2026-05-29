@@ -8,6 +8,7 @@ import { Product, PackageOption } from '../../../domain/entities/Product';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { transformProductForUser, UIProduct } from '../../../application/utils/productTransformer';
+import { useFavorite } from '../../context/FavoriteContext';
 
 const getPackageOptions = (prod: Product | UIProduct): PackageOption[] => {
   if (prod.packageOptions && prod.packageOptions.length > 0) {
@@ -37,6 +38,7 @@ export default function ProductDetailPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user } = useAuth();
   const { addToCart } = useCart();
+  const { isFavorite, toggleFavorite } = useFavorite();
 
   useEffect(() => {
     if (!id || typeof id !== 'string') return;
@@ -68,6 +70,7 @@ export default function ProductDetailPage() {
 
   const isReseller = user?.role === 'reseller' || user?.role === 'admin';
   const isPack = !!product?.isPackageSale;
+  const isFav = product ? isFavorite(product.id!) : false;
 
   const options = useMemo(() => {
     if (!product) return [];
@@ -356,15 +359,33 @@ export default function ProductDetailPage() {
               </div>
             </div>
 
-            {/* Add to cart button */}
-            <button 
-              onClick={() => product && addToCart(product, activeQuantity, selectedPack?.id)}
-              disabled={isOutOfStock}
-              className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED] disabled:bg-gray-700 text-white font-bold py-4 rounded-xl transition-all duration-300 transform active:scale-[0.98] flex justify-center items-center gap-3 shadow-[0_0_20px_rgba(139,92,246,0.3)] text-lg"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-              {isOutOfStock ? 'Agotado' : 'Agregar al Carrito'}
-            </button>
+            {/* Action Buttons */}
+            <div className="flex gap-4">
+              {/* Favorite Button */}
+              <button
+                onClick={() => product && toggleFavorite(product.id!)}
+                className={`flex-shrink-0 w-16 h-16 rounded-xl flex items-center justify-center transition-all duration-300 active:scale-95 border ${
+                  isFav 
+                    ? 'bg-pink-500/10 border-pink-500 text-pink-500 shadow-[0_0_20px_rgba(236,72,153,0.2)]' 
+                    : 'bg-transparent border-white/10 text-white hover:bg-white/5 hover:border-white/20'
+                }`}
+                title={isFav ? "Quitar de favoritos" : "Añadir a favoritos"}
+              >
+                <svg className={`w-7 h-7 transition-transform duration-300 ${isFav ? 'scale-110' : 'hover:scale-110'}`} fill={isFav ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={isFav ? '1.5' : '2'} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                </svg>
+              </button>
+
+              {/* Add to cart button */}
+              <button 
+                onClick={() => product && addToCart(product, activeQuantity, selectedPack?.id)}
+                disabled={isOutOfStock}
+                className="flex-grow bg-[#8B5CF6] hover:bg-[#7C3AED] disabled:bg-gray-700 text-white font-bold py-4 rounded-xl transition-all duration-300 transform active:scale-[0.98] flex justify-center items-center gap-3 shadow-[0_0_20px_rgba(139,92,246,0.3)] text-lg"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                {isOutOfStock ? 'Agotado' : 'Agregar al Carrito'}
+              </button>
+            </div>
             
             {!isReseller && (
               <div className="mt-6 text-center">
@@ -417,10 +438,18 @@ export default function ProductDetailPage() {
           </div>
         </div>
         
-        {/* Mobile Sticky Add to Cart (Hidden in desktop since design has it in the right card) 
-            I will keep it for mobile usability but adapt the colors to the mockup */}
-        <div className="md:hidden fixed bottom-0 left-0 w-full bg-[#0B0D14]/90 backdrop-blur-xl border-t border-white/5 p-4 pb-8 z-40 flex items-center justify-between gap-5 shadow-[0_-20px_40px_rgba(0,0,0,0.5)]">
-          <div className="flex flex-col">
+        {/* Mobile Sticky Add to Cart */}
+        <div className="md:hidden fixed bottom-0 left-0 w-full bg-[#0B0D14]/90 backdrop-blur-xl border-t border-white/5 p-4 pb-8 z-40 flex items-center justify-between gap-4 shadow-[0_-20px_40px_rgba(0,0,0,0.5)]">
+          <button
+            onClick={() => product && toggleFavorite(product.id!)}
+            className={`w-14 h-14 flex-shrink-0 flex items-center justify-center rounded-xl transition-all ${
+              isFav ? 'bg-pink-500/10 text-pink-500 border border-pink-500/50' : 'bg-white/5 text-gray-300 border border-white/10'
+            }`}
+          >
+            <svg className="w-6 h-6" fill={isFav ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={isFav ? '1.5' : '2'} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+          </button>
+          
+          <div className="hidden min-[380px]:flex flex-col">
             <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
               {isOutOfStock ? 'Agotado' : 'Total'}
             </span>
@@ -428,12 +457,13 @@ export default function ProductDetailPage() {
               {isReseller ? formatCOP(isOutOfStock ? 0 : (isPack && selectedPack ? selectedPack.wholesalePrice : product.precio) * activeQuantity) : '$ 0'}
             </span>
           </div>
+
           <button 
             onClick={() => product && addToCart(product, activeQuantity, selectedPack?.id)}
             disabled={isOutOfStock}
-            className="flex-1 bg-[#8B5CF6] disabled:bg-gray-700 text-white font-black py-4 rounded-xl shadow-[0_0_15px_rgba(139,92,246,0.3)] text-sm active:scale-95 transition-transform flex items-center justify-center gap-2"
+            className="flex-grow bg-[#8B5CF6] disabled:bg-gray-700 text-white font-black py-4 rounded-xl shadow-[0_0_15px_rgba(139,92,246,0.3)] text-sm active:scale-95 transition-transform flex items-center justify-center gap-2 max-w-[200px]"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            <svg className="w-5 h-5 hidden min-[400px]:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
             Agregar
           </button>
         </div>

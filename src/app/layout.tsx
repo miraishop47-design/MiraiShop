@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "./components/Navbar";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
+import { FavoriteProvider } from "./context/FavoriteContext";
 import CartSidebar from "./components/CartSidebar";
 import FloatingCartButton from "./components/FloatingCartButton";
 
@@ -51,12 +52,14 @@ export default function RootLayout({
       <body className={`${inter.className} bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 antialiased`}>
         <AuthProvider>
           <CartProvider>
-            <Navbar />
-            <CartSidebar />
-            <FloatingCartButton />
-            <main className="min-h-screen pt-16">
-              {children}
-            </main>
+            <FavoriteProvider>
+              <Navbar />
+              <CartSidebar />
+              <FloatingCartButton />
+              <main className="min-h-screen pt-16">
+                {children}
+              </main>
+            </FavoriteProvider>
           </CartProvider>
         </AuthProvider>
       </body>
