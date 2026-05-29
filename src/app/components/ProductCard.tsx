@@ -49,17 +49,17 @@ export default function ProductCard({ product }: ProductCardProps) {
   return (
     <div 
       onClick={() => router.push(`/products/${product.id}`)}
-      className="group bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl border border-gray-200/50 dark:border-gray-800/50 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform sm:hover:-translate-y-2 flex flex-col h-full relative cursor-pointer"
+      className="group bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl border border-gray-200/50 dark:border-gray-800/50 overflow-hidden shadow-sm transition-transform duration-300 transform sm:hover:-translate-y-1.5 will-change-transform flex flex-col h-full relative cursor-pointer"
     >
       
       {/* Badges Container */}
       <div className="absolute top-4 left-4 right-4 z-10 flex flex-wrap gap-2 items-center pointer-events-none">
-        <span className="bg-black/60 backdrop-blur-md text-white text-xs font-semibold px-3.5 py-1.5 rounded-full border border-white/10 tracking-wide pointer-events-auto">
+        <span className="bg-black/80 text-white text-xs font-semibold px-3.5 py-1.5 rounded-full border border-white/10 tracking-wide pointer-events-none">
           {product.categoria}
         </span>
         
         {isPack && (
-          <span className="bg-pink-600/90 backdrop-blur-md text-white text-[10px] font-black px-3.5 py-1.5 rounded-full border border-pink-500/30 uppercase tracking-wider pointer-events-auto">
+          <span className="bg-pink-600/95 text-white text-[10px] font-black px-3.5 py-1.5 rounded-full border border-pink-500/30 uppercase tracking-wider pointer-events-none">
             {options.length === 1 
               ? `Caja x${options[0].unitsPerPackage} und.` 
               : `Cajas x${options.map(o => o.unitsPerPackage).join('/')} und.`}
@@ -67,7 +67,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         )}
 
         {isMadeToOrder && (
-          <span className="bg-amber-600/95 backdrop-blur-md text-white text-[10px] font-black px-3.5 py-1.5 rounded-full border border-amber-500/20 tracking-wider uppercase animate-pulse pointer-events-auto">
+          <span className="bg-amber-600/95 text-white text-[10px] font-black px-3.5 py-1.5 rounded-full border border-amber-500/20 tracking-wider uppercase pointer-events-none">
             🛠️ Por pedido
           </span>
         )}
@@ -78,13 +78,15 @@ export default function ProductCard({ product }: ProductCardProps) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={mainImage}
-          alt={product.nombre}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          alt={`${product.nombre} - MiraiShop`}
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 will-change-transform"
+          loading="lazy"
+          decoding="async"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         
         {isOutOfStock && (
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
             <span className="text-white font-black tracking-wider uppercase bg-red-600/90 px-5 py-2 rounded-full border border-red-500/50 text-sm shadow-lg">
               Agotado
             </span>

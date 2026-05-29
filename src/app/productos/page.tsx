@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, Suspense } from 'react';
+import { useEffect, useState, useMemo, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Product } from '../../domain/entities/Product';
@@ -45,7 +45,7 @@ function ProductosListContent() {
     }
   }, []);
 
-  const handleFilterChange = ({ search, category }: { search: string; category: string }) => {
+  const handleFilterChange = useCallback(({ search, category }: { search: string; category: string }) => {
     const params = new URLSearchParams(window.location.search);
     
     if (search) {
@@ -65,7 +65,7 @@ function ProductosListContent() {
     
     setSearchQuery(search);
     setSelectedCategory(category);
-  };
+  }, []);
 
   // Filter inactive products and transform + filter by search and category before rendering
   const products = useMemo(() => {
@@ -96,8 +96,8 @@ function ProductosListContent() {
       {/* Page Header */}
       <div className="text-center mb-12 relative">
         <div className="absolute inset-0 flex justify-center items-center -z-10 opacity-30 blur-3xl">
-          <div className="w-64 h-64 bg-indigo-500 rounded-full mix-blend-multiply filter animate-pulse"></div>
-          <div className="w-64 h-64 bg-pink-500 rounded-full mix-blend-multiply filter animate-pulse delay-700 -ml-20"></div>
+          <div className="w-64 h-64 bg-indigo-500 rounded-full mix-blend-multiply filter"></div>
+          <div className="w-64 h-64 bg-pink-500 rounded-full mix-blend-multiply filter -ml-20"></div>
         </div>
         <h1 className="text-4xl md:text-6xl font-black tracking-tight text-gray-900 dark:text-white mb-4">
           Nuestra Galería de <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">productos</span>
@@ -165,9 +165,9 @@ function ProductosListContent() {
       {!loading && !error && products.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {products.map((product) => (
-            <Link href={`/products/${product.id}`} key={product.id} className="block h-full group">
+            <div key={product.id} className="block h-full group">
               <ProductCard product={product} />
-            </Link>
+            </div>
           ))}
         </div>
       )}

@@ -18,7 +18,7 @@ export default function CartSidebar() {
     <div className={`fixed inset-0 z-50 overflow-hidden transition-all duration-300 ${isCartOpen ? 'visible pointer-events-auto' : 'invisible pointer-events-none'}`}>
       {/* Backdrop */}
       <div
-        className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isCartOpen ? 'opacity-100' : 'opacity-0'}`}
+        className={`absolute inset-0 bg-black/60 transition-opacity duration-300 ${isCartOpen ? 'opacity-100 backdrop-blur-sm' : 'opacity-0 backdrop-blur-none'}`}
         onClick={() => setIsCartOpen(false)}
       />
 
@@ -46,7 +46,7 @@ export default function CartSidebar() {
                 <span className="text-5xl">🛍️</span>
                 <div>
                   <h3 className="font-bold text-gray-900 dark:text-white mb-1">El carrito está vacío</h3>
-                  <p className="text-xs text-gray-500 max-w-[250px] mx-auto">Explora nuestro catálogo e introduce tus piezas preferidas.</p>
+                  <p className="text-xs text-gray-500 max-w-[250px] mx-auto">Explora nuestro catálogo y agrega tus piezas preferidas.</p>
                 </div>
               </div>
             ) : (

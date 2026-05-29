@@ -41,8 +41,8 @@ export default function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950 relative overflow-hidden">
       {/* Background Glows */}
       <div className="absolute inset-0 flex justify-center items-center -z-10 opacity-30 blur-[100px]">
-        <div className="w-[30rem] h-[30rem] bg-indigo-600 rounded-full mix-blend-multiply filter animate-pulse"></div>
-        <div className="w-[30rem] h-[30rem] bg-pink-600 rounded-full mix-blend-multiply filter animate-pulse delay-700 -ml-32"></div>
+        <div className="w-[30rem] h-[30rem] bg-indigo-600 rounded-full mix-blend-multiply filter"></div>
+        <div className="w-[30rem] h-[30rem] bg-pink-600 rounded-full mix-blend-multiply filter -ml-32"></div>
       </div>
 
       <div className="w-full max-w-md bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl p-10 rounded-[2.5rem] shadow-2xl border border-gray-200/50 dark:border-gray-800/50 relative z-10 mx-4">

@@ -7,12 +7,16 @@ interface ProductFiltersProps {
   initialSearch?: string;
   initialCategory?: string;
   onFilterChange: (filters: { search: string; category: string }) => void;
+  disableDebounce?: boolean;
+  onSearchSubmit?: (filters: { search: string; category: string }) => void;
 }
 
 export default function ProductFilters({
   initialSearch = '',
   initialCategory = '',
-  onFilterChange
+  onFilterChange,
+  disableDebounce = false,
+  onSearchSubmit
 }: ProductFiltersProps) {
   const [search, setSearch] = useState(initialSearch);
   const [category, setCategory] = useState(initialCategory);
@@ -29,12 +33,13 @@ export default function ProductFilters({
 
   // Debounce search input
   useEffect(() => {
+    if (disableDebounce) return;
     const handler = setTimeout(() => {
       onFilterChange({ search, category });
     }, 200);
 
     return () => clearTimeout(handler);
-  }, [search, category, onFilterChange]);
+  }, [search, category, onFilterChange, disableDebounce]);
 
   const handleCategorySelect = (cat: string) => {
     setCategory(prev => (prev === cat ? '' : cat));
@@ -63,6 +68,12 @@ export default function ProductFilters({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                onSearchSubmit?.({ search, category });
+              }
+            }}
             placeholder="¿Qué estás buscando?"
             className="w-full pl-12 pr-10 py-3.5 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm focus:border-indigo-500/80 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all duration-300 text-gray-800 dark:text-gray-150 placeholder-gray-400 dark:placeholder-gray-500 text-sm font-medium"
           />

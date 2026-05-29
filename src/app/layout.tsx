@@ -9,9 +9,36 @@ import FloatingCartButton from "./components/FloatingCartButton";
 
 const inter = Inter({ subsets: ["latin"] });
 
+const APP_NAME = 'MiraiShop';
+const APP_DEFAULT_TITLE = 'MiraiShop | Diseño y Tecnología';
+const APP_TITLE_TEMPLATE = '%s | MiraiShop';
+const APP_DESCRIPTION = 'Explora diseños únicos de la más alta calidad y listos para formar parte de tu Setup o tu Hogar. Descubre productos modernos y funcionales.';
+
 export const metadata: Metadata = {
-  title: "MiraiShop",
-  description: "Tecnología, diseño 3D y el futuro en tus manos",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://miraishop.vercel.app'),
+  applicationName: APP_NAME,
+  title: {
+    default: APP_DEFAULT_TITLE,
+    template: APP_TITLE_TEMPLATE,
+  },
+  description: APP_DESCRIPTION,
+  openGraph: {
+    type: 'website',
+    siteName: APP_NAME,
+    title: {
+      default: APP_DEFAULT_TITLE,
+      template: APP_TITLE_TEMPLATE,
+    },
+    description: APP_DESCRIPTION,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: {
+      default: APP_DEFAULT_TITLE,
+      template: APP_TITLE_TEMPLATE,
+    },
+    description: APP_DESCRIPTION,
+  },
 };
 
 export default function RootLayout({
