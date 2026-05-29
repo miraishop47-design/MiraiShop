@@ -23,6 +23,8 @@ export interface Order {
   customerEmail: string;
   customerRole: string;
   customerPhone?: string;
+  customerAddress?: string;
+  customerNotes?: string;
   items: OrderItem[];
   subtotal: number;
   total: number;

@@ -182,6 +182,8 @@ export class FirebaseOrderRepositoryImpl implements OrderRepository {
         customerEmail: data.customerEmail,
         customerRole: data.customerRole,
         customerPhone: data.customerPhone,
+        customerAddress: data.customerAddress,
+        customerNotes: data.customerNotes,
         items: (data.items || []).map((item: any) => ({
           productId: item.productId,
           nombre: item.nombre,
@@ -228,6 +230,8 @@ export class FirebaseOrderRepositoryImpl implements OrderRepository {
           customerEmail: data.customerEmail,
           customerRole: data.customerRole,
           customerPhone: data.customerPhone,
+          customerAddress: data.customerAddress,
+          customerNotes: data.customerNotes,
           items: (data.items || []).map((item: any) => ({
             productId: item.productId,
             nombre: item.nombre,
@@ -266,5 +270,35 @@ export class FirebaseOrderRepositoryImpl implements OrderRepository {
 
     const docRef = doc(db, 'orders', id);
     await updateDoc(docRef, { status });
+  }
+
+  async update(id: string, data: Partial<Order>): Promise<void> {
+    if (isMockFirebase) {
+      const orders = this.getMockOrders();
+      const index = orders.findIndex(o => o.id === id);
+      if (index !== -1) {
+        orders[index] = { ...orders[index], ...data };
+        this.saveMockOrders(orders);
+      }
+      return;
+    }
+
+    const docRef = doc(db, 'orders', id);
+    const updatePayload = { ...data };
+    delete updatePayload.id; // Prevent updating ID
+    await updateDoc(docRef, updatePayload);
+  }
+
+  async delete(id: string): Promise<void> {
+    if (isMockFirebase) {
+      const orders = this.getMockOrders();
+      const filtered = orders.filter(o => o.id !== id);
+      this.saveMockOrders(filtered);
+      return;
+    }
+
+    const { deleteDoc } = await import('firebase/firestore');
+    const docRef = doc(db, 'orders', id);
+    await deleteDoc(docRef);
   }
 }

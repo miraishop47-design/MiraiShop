@@ -75,26 +75,20 @@ export default function ProductDetailPage() {
 
   const [selectedPackId, setSelectedPackId] = useState<string>('');
 
-  useEffect(() => {
-    if (options.length > 0) {
-      setSelectedPackId(options[0].id);
-    }
-  }, [options]);
+  const activePackId = selectedPackId || (options.length > 0 ? options[0].id : '');
 
   const selectedPack = useMemo(() => {
     if (!isPack) return null;
-    return options.find(o => o.id === selectedPackId) || options[0] || null;
-  }, [options, isPack, selectedPackId]);
+    return options.find(o => o.id === activePackId) || options[0] || null;
+  }, [options, isPack, activePackId]);
 
-  useEffect(() => {
+  const activeQuantity = useMemo(() => {
     if (isPack && selectedPack) {
       const limit = selectedPack.availablePackages;
-      setQuantity(prev => {
-        if (prev > limit) return Math.max(1, limit);
-        return prev;
-      });
+      return quantity > limit ? Math.max(1, limit) : quantity;
     }
-  }, [selectedPackId, isPack, selectedPack]);
+    return quantity;
+  }, [quantity, isPack, selectedPack]);
 
   // Enforce active status redirect if user is not admin
   const isDenied = rawProduct && rawProduct.activo === false && user?.role !== 'admin';
@@ -266,7 +260,7 @@ export default function ProductDetailPage() {
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {options.map((opt) => {
-                    const isSelected = opt.id === selectedPackId;
+                    const isSelected = opt.id === activePackId;
                     return (
                       <button
                         key={opt.id}
@@ -332,7 +326,7 @@ export default function ProductDetailPage() {
                     -
                   </button>
                   <span className="px-6 py-3 font-bold text-gray-900 dark:text-white w-16 text-center border-x-2 border-gray-200 dark:border-gray-800 text-xl">
-                    {isOutOfStock ? 0 : quantity}
+                    {isOutOfStock ? 0 : activeQuantity}
                   </span>
                   <button
                     onClick={handleIncrease}
@@ -346,12 +340,12 @@ export default function ProductDetailPage() {
                   <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Total a pagar</span>
                   <span className="text-2xl font-black text-gray-900 dark:text-white">
                     {isReseller 
-                      ? formatCOP(isOutOfStock ? 0 : (isPack && selectedPack ? selectedPack.wholesalePrice : product.precio) * quantity)
+                      ? formatCOP(isOutOfStock ? 0 : (isPack && selectedPack ? selectedPack.wholesalePrice : product.precio) * activeQuantity)
                       : 'Cotización: A convenir'}
                   </span>
                   {isPack && !isOutOfStock && (
                     <span className="text-[11px] text-gray-400 font-semibold mt-0.5">
-                      ({quantity * (selectedPack ? selectedPack.unitsPerPackage : 0)} unidades totales)
+                      ({activeQuantity * (selectedPack ? selectedPack.unitsPerPackage : 0)} unidades totales)
                     </span>
                   )}
                 </div>
@@ -360,7 +354,7 @@ export default function ProductDetailPage() {
 
             <div className="space-y-4">
               <button 
-                onClick={() => product && addToCart(product, quantity, selectedPack?.id)}
+                onClick={() => product && addToCart(product, activeQuantity, selectedPack?.id)}
                 disabled={isOutOfStock}
                 className="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-[length:200%_auto] hover:bg-right disabled:from-gray-400 disabled:to-gray-500 disabled:shadow-none text-white font-black py-4.5 rounded-2xl shadow-xl shadow-indigo-500/20 hover:shadow-indigo-500/40 transition-all duration-500 transform hover:-translate-y-1 active:translate-y-0 text-lg flex justify-center items-center gap-3 active:scale-[0.99] disabled:transform-none disabled:active:scale-100"
               >

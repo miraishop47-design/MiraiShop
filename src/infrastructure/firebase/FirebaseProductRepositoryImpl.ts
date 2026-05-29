@@ -142,8 +142,12 @@ export class FirebaseProductRepositoryImpl implements ProductRepository {
       return newProduct;
     }
 
+    const cleanProduct = Object.fromEntries(
+      Object.entries(product).filter(([_, v]) => v !== undefined)
+    );
+
     const docRef = await addDoc(this.collectionRef, {
-      ...product,
+      ...cleanProduct,
       createdAt: serverTimestamp()
     });
     return {
@@ -295,8 +299,12 @@ export class FirebaseProductRepositoryImpl implements ProductRepository {
       return;
     }
 
+    const cleanProduct = Object.fromEntries(
+      Object.entries(product).filter(([_, v]) => v !== undefined)
+    );
+
     const docRef = doc(db, 'productos', id);
-    await updateDoc(docRef, product);
+    await updateDoc(docRef, cleanProduct);
   }
 
   async delete(id: string): Promise<void> {

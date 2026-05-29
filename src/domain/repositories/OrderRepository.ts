@@ -5,4 +5,6 @@ export interface OrderRepository {
   getAll(): Promise<Order[]>;
   subscribeToAll(callback: (orders: Order[]) => void): () => void;
   updateStatus(id: string, status: OrderStatus): Promise<void>;
+  update(id: string, data: Partial<Order>): Promise<void>;
+  delete(id: string): Promise<void>;
 }

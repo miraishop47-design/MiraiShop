@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
 import { productService } from '../../application/services/productService';
 import { Product, PackageOption } from '../../domain/entities/Product';
+import CustomCategorySelect from '../components/CustomCategorySelect';
 
 const CATEGORIES = [
   "Hogar",
@@ -492,18 +493,11 @@ export default function AdminPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 ml-1">Categoría</label>
-                  <select
-                    name="categoria"
-                    value={form.categoria}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-gray-50/50 dark:bg-gray-955/50 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 dark:text-white outline-none transition-all font-medium"
-                  >
-                    {CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
+                  <CustomCategorySelect
+                    categories={CATEGORIES}
+                    selected={form.categoria}
+                    onChange={(val) => setForm(prev => ({ ...prev, categoria: val }))}
+                  />
                 </div>
               </div>
 

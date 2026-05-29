@@ -3,15 +3,20 @@
 import React, { useState } from 'react';
 import { Order, OrderStatus } from '../../domain/entities/Order';
 import OrderStatusBadge from './OrderStatusBadge';
+import OrderEditModal from './OrderEditModal';
 
 interface OrderCardProps {
   order: Order;
   onStatusChange: (id: string, newStatus: OrderStatus) => Promise<void>;
+  onUpdate: (id: string, data: Partial<Order>) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }
 
-export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
+export default function OrderCard({ order, onStatusChange, onUpdate, onDelete }: OrderCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const formatCOP = (value: number) =>
     new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value);
@@ -48,6 +53,20 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
         alert('No se pudo actualizar el estado del pedido.');
       } finally {
         setIsUpdating(false);
+      }
+    }
+  };
+
+  const handleDelete = async () => {
+    if (order.id) {
+      try {
+        setIsUpdating(true);
+        await onDelete(order.id);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsUpdating(false);
+        setIsDeleteModalOpen(false);
       }
     }
   };
@@ -140,6 +159,22 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
             <option value="cancelado">Cancelado</option>
           </select>
         </div>
+
+        {/* Action Buttons (Edit / Delete) */}
+        <div className="flex items-center gap-2 mt-3 sm:mt-0 w-full sm:w-auto justify-end">
+          <button
+            onClick={() => setIsEditModalOpen(true)}
+            className="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-bold transition-colors"
+          >
+            Editar
+          </button>
+          <button
+            onClick={() => setIsDeleteModalOpen(true)}
+            className="px-4 py-1.5 bg-red-50 hover:bg-red-100 dark:bg-red-955/20 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl text-xs font-bold transition-colors"
+          >
+            Eliminar
+          </button>
+        </div>
       </div>
 
       {/* Collapsible Items List */}
@@ -170,6 +205,42 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
               </span>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {isEditModalOpen && (
+        <OrderEditModal
+          order={order}
+          onClose={() => setIsEditModalOpen(false)}
+          onSave={onUpdate}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsDeleteModalOpen(false)}></div>
+          <div className="relative bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-2xl max-w-sm w-full border border-gray-100 dark:border-gray-800 animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2">Eliminar Pedido</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              ¿Seguro que deseas eliminar este pedido? Esta acción no se puede deshacer y los datos se perderán para siempre.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold rounded-xl transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDelete}
+                className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-sm hover:shadow-red-500/25 transition-all"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

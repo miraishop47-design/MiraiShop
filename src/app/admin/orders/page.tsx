@@ -62,6 +62,24 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const handleUpdateOrder = async (id: string, data: Partial<Order>) => {
+    try {
+      await orderService.updateOrder(id, data);
+    } catch (err: any) {
+      alert(`No se pudo actualizar el pedido: ${err.message || err}`);
+      throw err;
+    }
+  };
+
+  const handleDeleteOrder = async (id: string) => {
+    try {
+      await orderService.deleteOrder(id);
+    } catch (err: any) {
+      alert(`No se pudo eliminar el pedido: ${err.message || err}`);
+      throw err;
+    }
+  };
+
   const formatCOP = (value: number) =>
     new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value);
 
@@ -188,6 +206,8 @@ export default function AdminOrdersPage() {
               key={order.id}
               order={order}
               onStatusChange={handleStatusChange}
+              onUpdate={handleUpdateOrder}
+              onDelete={handleDeleteOrder}
             />
           ))}
         </div>
