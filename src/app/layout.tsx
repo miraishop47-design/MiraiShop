@@ -5,6 +5,7 @@ import Navbar from "./components/Navbar";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import CartSidebar from "./components/CartSidebar";
+import FloatingCartButton from "./components/FloatingCartButton";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,6 +26,7 @@ export default function RootLayout({
           <CartProvider>
             <Navbar />
             <CartSidebar />
+            <FloatingCartButton />
             <main className="min-h-screen pt-16">
               {children}
             </main>

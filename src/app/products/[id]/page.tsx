@@ -157,7 +157,7 @@ export default function ProductDetailPage() {
   const activeImage = productImages[activeImageIdx] || productImages[0];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 pb-32 md:pb-12">
       <div className="mb-8">
         <Link href="/productos" className="text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-2 w-fit font-medium">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
@@ -190,12 +190,12 @@ export default function ProductDetailPage() {
 
             {/* Selector de Miniaturas */}
             {productImages.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto w-full justify-center py-4 mt-4 scrollbar-thin scrollbar-thumb-gray-200">
+              <div className="flex gap-3 overflow-x-auto w-full justify-start md:justify-center py-4 mt-4 scrollbar-hide snap-x snap-mandatory">
                 {productImages.map((imgUrl, idx) => (
                   <button
                     key={idx}
                     onClick={() => setActiveImageIdx(idx)}
-                    className={`w-20 h-20 rounded-2xl overflow-hidden border-2 bg-white dark:bg-gray-900 transition-all p-1 flex-shrink-0 relative ${activeImageIdx === idx ? 'border-indigo-500 scale-105 shadow-md' : 'border-gray-200/50 hover:border-indigo-300 dark:border-gray-800'}`}
+                    className={`snap-center w-20 h-20 rounded-2xl overflow-hidden border-2 bg-white dark:bg-gray-900 transition-all p-1 flex-shrink-0 relative ${activeImageIdx === idx ? 'border-indigo-500 scale-105 shadow-md' : 'border-gray-200/50 hover:border-indigo-300 dark:border-gray-800'}`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -225,7 +225,7 @@ export default function ProductDetailPage() {
                 </span>
               )}
             </div>
-            <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-4 leading-tight tracking-tight">
+            <h1 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white mb-4 leading-tight tracking-tight">
               {product.nombre}
             </h1>
 
@@ -321,7 +321,7 @@ export default function ProductDetailPage() {
                   <button
                     onClick={handleDecrease}
                     disabled={isOutOfStock}
-                    className="px-5 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition font-bold text-xl active:bg-gray-200 dark:active:bg-gray-700 disabled:opacity-50 outline-none"
+                    className="px-4 py-3 sm:px-5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition font-bold text-xl active:bg-gray-200 dark:active:bg-gray-700 disabled:opacity-50 outline-none"
                   >
                     -
                   </button>
@@ -331,7 +331,7 @@ export default function ProductDetailPage() {
                   <button
                     onClick={handleIncrease}
                     disabled={isOutOfStock}
-                    className="px-5 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition font-bold text-xl active:bg-gray-200 dark:active:bg-gray-700 disabled:opacity-50 outline-none"
+                    className="px-4 py-3 sm:px-5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition font-bold text-xl active:bg-gray-200 dark:active:bg-gray-700 disabled:opacity-50 outline-none"
                   >
                     +
                   </button>
@@ -392,6 +392,27 @@ export default function ProductDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Sticky Add to Cart */}
+      <div className="md:hidden fixed bottom-0 left-0 w-full bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-t border-gray-200/50 dark:border-gray-800/50 p-4 pb-8 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] dark:shadow-[0_-10px_30px_rgba(0,0,0,0.3)] z-40 flex items-center justify-between gap-4 animate-slide-up">
+        <div className="flex flex-col">
+          <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">
+            {isOutOfStock ? 'No disponible' : 'Total'}
+          </span>
+          <span className="text-xl font-black text-indigo-600 dark:text-indigo-400">
+            {isReseller ? formatCOP(isOutOfStock ? 0 : (isPack && selectedPack ? selectedPack.wholesalePrice : product.precio) * activeQuantity) : 'Cotización'}
+          </span>
+        </div>
+        <button 
+          onClick={() => product && addToCart(product, activeQuantity, selectedPack?.id)}
+          disabled={isOutOfStock}
+          className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 disabled:from-gray-300 disabled:to-gray-400 dark:disabled:from-gray-700 dark:disabled:to-gray-800 text-white font-black py-3.5 rounded-xl shadow-lg shadow-indigo-500/20 text-sm active:scale-95 transition-all flex items-center justify-center gap-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+          {isOutOfStock ? 'Agotado' : 'Agregar'}
+        </button>
+      </div>
+
     </div>
   );
 }
