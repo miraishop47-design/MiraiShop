@@ -6,7 +6,7 @@ import { FirebaseAuthRepositoryImpl } from '../../infrastructure/repositories/Fi
 import { LoginUseCase } from '../../application/use-cases/LoginUseCase';
 import { RegisterUseCase } from '../../application/use-cases/RegisterUseCase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, db } from '../../infrastructure/firebase/firebaseConfig';
+import { auth, db, isMockFirebase } from '../../infrastructure/firebase/firebaseConfig';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 interface AuthContextType {
@@ -29,11 +29,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const registerUseCase = new RegisterUseCase(authRepository);
 
   useEffect(() => {
+    if (isMockFirebase) {
+      const storedUser = localStorage.getItem('mock_current_user');
+      if (storedUser) {
+        try {
+          const parsed = JSON.parse(storedUser);
+          setUser(parsed);
+          localStorage.setItem('user_role', parsed.role);
+        } catch (e) {
+          console.error("Error reading mock current user", e);
+        }
+      } else {
+        setUser(null);
+        localStorage.removeItem('user_role');
+      }
+      setLoading(false);
+      return;
+    }
+
     // Listen for authentication state changes in Firebase
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         let role: 'customer' | 'reseller' | 'admin' = 'customer';
-        if (firebaseUser.email === 'miraishop47@gmail.com') {
+        if (firebaseUser.email === 'ariaacris73@gmail.com' || firebaseUser.email === 'miraishop47@gmail.com') {
           role = 'admin';
           // Ensure admin role is always persisted in Firestore
           try {
@@ -57,8 +75,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: firebaseUser.email || '',
           role,
         });
+        localStorage.setItem('user_role', role);
       } else {
         setUser(null);
+        localStorage.removeItem('user_role');
       }
       setLoading(false);
     });
@@ -67,22 +87,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string): Promise<User> => {
-    // Execute use case
     const loggedUser = await loginUseCase.execute(email, password);
     setUser(loggedUser);
+    localStorage.setItem('user_role', loggedUser.role || 'customer');
     return loggedUser;
   };
 
   const register = async (name: string, email: string, password: string, role: 'customer' | 'reseller'): Promise<User> => {
-    // Execute use case
     const registeredUser = await registerUseCase.execute(name, email, password, role);
     setUser(registeredUser);
+    localStorage.setItem('user_role', registeredUser.role || 'customer');
     return registeredUser;
   };
 
   const logout = async (): Promise<void> => {
     await authRepository.logout();
     setUser(null);
+    localStorage.removeItem('user_role');
   };
 
   return (

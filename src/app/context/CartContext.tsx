@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CartItem } from '../../domain/entities/CartItem';
-import { Product } from '../../domain/entities/Product';
+import { Product, PackageOption } from '../../domain/entities/Product';
 import { UIProduct } from '../../application/utils/productTransformer';
 import { cartService } from '../../application/services/cartService';
 import { useAuth } from './AuthContext';
@@ -12,7 +12,7 @@ interface CartContextProps {
   cart: CartItem[];
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
-  addToCart: (product: Product | UIProduct, quantity: number) => void;
+  addToCart: (product: Product | UIProduct, quantity: number, selectedPackageId?: string) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
@@ -22,11 +22,33 @@ interface CartContextProps {
 
 const CartContext = createContext<CartContextProps | undefined>(undefined);
 
+const getPackageOptions = (prod: Product | UIProduct): PackageOption[] => {
+  if (prod.packageOptions && prod.packageOptions.length > 0) {
+    return prod.packageOptions;
+  }
+  if (prod.isPackageSale && prod.unitsPerPackage) {
+    return [{
+      id: 'default-pack',
+      unitsPerPackage: prod.unitsPerPackage,
+      availablePackages: prod.availablePackages || 0,
+      wholesalePrice: prod.precioPaquete || ('precioMayorista' in prod ? (prod.precioMayorista || 0) : 0)
+    }];
+  }
+  return [];
+};
+
 const getPriceByRole = (prod: Product, role?: string) => {
   if (role === 'reseller' || role === 'admin') {
-    return prod.precioMayorista;
+    if (prod.isPackageSale) {
+      const options = getPackageOptions(prod);
+      if (options.length > 0) {
+        return Math.min(...options.map(o => o.wholesalePrice));
+      }
+      return prod.precioPaquete || prod.precioMayorista || 0;
+    }
+    return prod.precioMayorista || 0;
   }
-  return prod.precioCliente;
+  return prod.precioCliente || 0;
 };
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -52,9 +74,17 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         let hasChanges = false;
         
         const updatedCart = cart.map(item => {
-          const matchingProd = products.find(p => p.id === item.id);
+          const matchingProd = products.find(p => p.id === item.productId || p.id === item.id);
           if (matchingProd) {
-            const currentPrice = getPriceByRole(matchingProd, user?.role);
+            let currentPrice = getPriceByRole(matchingProd, user?.role);
+            const isReseller = user?.role === 'reseller' || user?.role === 'admin';
+            if (item.isPackageSale && isReseller) {
+              const options = getPackageOptions(matchingProd);
+              const opt = options.find(o => o.id === item.selectedPackageId);
+              if (opt) {
+                currentPrice = opt.wholesalePrice;
+              }
+            }
             if (item.precio !== currentPrice) {
               hasChanges = true;
               return { ...item, precio: currentPrice };
@@ -75,37 +105,81 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshPrices();
   }, [user?.role, isLoaded]);
 
-  const addToCart = (product: Product | UIProduct, quantity: number) => {
+  const addToCart = (product: Product | UIProduct, quantity: number, selectedPackageId?: string) => {
     if (quantity <= 0) return;
-    
-    const existingItem = cart.find(item => item.id === product.id);
+
+    const isReseller = user?.role === 'reseller' || user?.role === 'admin';
+    const isPack = !!product.isPackageSale;
+
+    let cartKey = product.id!;
+    let packOpt: any = null;
+
+    if (isPack) {
+      const options = getPackageOptions(product);
+      if (options.length > 0) {
+        packOpt = selectedPackageId 
+          ? options.find(o => o.id === selectedPackageId) 
+          : options[0];
+        
+        if (!packOpt) {
+          alert('Opción de paquete no válida.');
+          return;
+        }
+        cartKey = `${product.id}-${packOpt.id}`;
+      } else {
+        alert('Este producto no tiene configuraciones de paquete disponibles.');
+        return;
+      }
+    }
+
+    const existingItem = cart.find(item => item.id === cartKey);
     const currentQty = existingItem ? existingItem.cantidad : 0;
     const newQty = currentQty + quantity;
 
-    if (newQty > product.stock) {
-      alert(`No hay suficiente stock disponible. Límite: ${product.stock}`);
+    const isMadeToOrder = !!product.isMadeToOrder;
+    const limit = isPack && packOpt ? packOpt.availablePackages : product.stock;
+
+    if (!isMadeToOrder && newQty > limit) {
+      alert(`No hay suficiente stock disponible. Límite: ${limit} ${isPack ? 'paquetes' : 'unidades'}`);
       return;
     }
 
-    const price = 'precioCliente' in product
-      ? getPriceByRole(product as Product, user?.role)
-      : (product as UIProduct).precio;
+    const price = isPack && packOpt
+      ? packOpt.wholesalePrice
+      : ('precioCliente' in product
+          ? getPriceByRole(product as Product, user?.role)
+          : (product as UIProduct).precio);
 
     let updatedCart: CartItem[];
     if (existingItem) {
       updatedCart = cart.map(item =>
-        item.id === product.id ? { ...item, cantidad: newQty, precio: price } : item
+        item.id === cartKey ? { 
+          ...item, 
+          cantidad: newQty, 
+          precio: price,
+          packageQuantity: isPack ? newQty : undefined,
+          totalUnits: isPack && packOpt ? newQty * packOpt.unitsPerPackage : undefined,
+        } : item
       );
     } else {
       updatedCart = [
         ...cart,
         {
-          id: product.id!,
+          id: cartKey,
+          productId: product.id!,
           nombre: product.nombre,
           imagen: product.imagen,
           precio: price,
           cantidad: quantity,
           stock: product.stock,
+          isPackageSale: isPack ? true : undefined,
+          selectedPackageId: isPack && packOpt ? packOpt.id : undefined,
+          packageQuantity: isPack ? quantity : undefined,
+          unitsPerPackage: isPack && packOpt ? packOpt.unitsPerPackage : undefined,
+          availablePackages: isPack && packOpt ? packOpt.availablePackages : undefined,
+          precioPaquete: isPack && packOpt ? packOpt.wholesalePrice : undefined,
+          totalUnits: isPack && packOpt ? quantity * packOpt.unitsPerPackage : undefined,
+          isMadeToOrder: product.isMadeToOrder,
         },
       ];
     }
@@ -130,13 +204,23 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const existingItem = cart.find(item => item.id === id);
     if (!existingItem) return;
 
-    if (quantity > existingItem.stock) {
-      alert(`No hay suficiente stock disponible. Límite: ${existingItem.stock}`);
+    const isReseller = user?.role === 'reseller' || user?.role === 'admin';
+    const isPack = !!existingItem.isPackageSale;
+    const isMadeToOrder = !!existingItem.isMadeToOrder;
+    const limit = isPack ? (existingItem.availablePackages || 0) : existingItem.stock;
+
+    if (!isMadeToOrder && quantity > limit) {
+      alert(`No hay suficiente stock disponible. Límite: ${limit} ${isPack ? 'paquetes' : 'unidades'}`);
       return;
     }
 
     const updatedCart = cart.map(item =>
-      item.id === id ? { ...item, cantidad: quantity } : item
+      item.id === id ? { 
+        ...item, 
+        cantidad: quantity,
+        packageQuantity: isPack ? quantity : undefined,
+        totalUnits: isPack && item.unitsPerPackage ? quantity * item.unitsPerPackage : undefined
+      } : item
     );
     setCart(updatedCart);
     cartService.saveCart(updatedCart);

@@ -1,6 +1,6 @@
 import { AuthRepository } from '../../domain/repositories/AuthRepository';
 import { User } from '../../domain/entities/User';
-import { auth, db } from '../firebase/firebaseConfig';
+import { auth, db, isMockFirebase } from '../firebase/firebaseConfig';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
@@ -11,6 +11,25 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export class FirebaseAuthRepositoryImpl implements AuthRepository {
   async login(email: string, password: string): Promise<User> {
+    if (isMockFirebase) {
+      const mockUsers = JSON.parse(localStorage.getItem('mock_users') || '[]');
+      const user = mockUsers.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
+      
+      if (!user || user.password !== password) {
+        throw new Error('auth/invalid-credential');
+      }
+
+      const loggedUser: User = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      };
+
+      localStorage.setItem('mock_current_user', JSON.stringify(loggedUser));
+      return loggedUser;
+    }
+
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const firebaseUser = userCredential.user;
 
@@ -39,6 +58,36 @@ export class FirebaseAuthRepositoryImpl implements AuthRepository {
   }
 
   async register(name: string, email: string, password: string, role: 'customer' | 'reseller'): Promise<User> {
+    if (isMockFirebase) {
+      const mockUsers = JSON.parse(localStorage.getItem('mock_users') || '[]');
+      const existingUser = mockUsers.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
+      
+      if (existingUser) {
+        throw { code: 'auth/email-already-in-use', message: 'El correo electrónico ya está en uso.' };
+      }
+
+      const finalRole = (email === 'ariaacris73@gmail.com' || email === 'miraishop47@gmail.com') ? 'admin' : role;
+      const newUser = {
+        id: `mock-uid-${Date.now()}`,
+        name,
+        email,
+        password,
+        role: finalRole,
+      };
+
+      mockUsers.push(newUser);
+      localStorage.setItem('mock_users', JSON.stringify(mockUsers));
+
+      const loggedUser: User = {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role as 'customer' | 'reseller' | 'admin',
+      };
+      localStorage.setItem('mock_current_user', JSON.stringify(loggedUser));
+      return loggedUser;
+    }
+
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const firebaseUser = userCredential.user;
 
@@ -66,6 +115,10 @@ export class FirebaseAuthRepositoryImpl implements AuthRepository {
   }
 
   async logout(): Promise<void> {
+    if (isMockFirebase) {
+      localStorage.removeItem('mock_current_user');
+      return;
+    }
     await signOut(auth);
   }
 }

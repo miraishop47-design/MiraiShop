@@ -1,18 +1,34 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Product } from '../../domain/entities/Product';
 import { productService } from '../../application/services/productService';
 import { useAuth } from '../context/AuthContext';
 import { transformProductForUser, UIProduct } from '../../application/utils/productTransformer';
 import ProductCard from '../components/ProductCard';
+import ProductFilters from '../components/ProductFilters';
 
-export default function ProductosPage() {
+function ProductosListContent() {
   const [rawProducts, setRawProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  
+  const searchParams = useSearchParams();
+
+  const initialSearch = searchParams.get('search') || '';
+  const initialCategory = searchParams.get('category') || '';
+
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
+
+  // Keep state synced with URL navigation (e.g. back button)
+  useEffect(() => {
+    setSearchQuery(searchParams.get('search') || '');
+    setSelectedCategory(searchParams.get('category') || '');
+  }, [searchParams]);
 
   useEffect(() => {
     try {
@@ -29,17 +45,56 @@ export default function ProductosPage() {
     }
   }, []);
 
-  // Filter inactive products and transform them before rendering
+  const handleFilterChange = ({ search, category }: { search: string; category: string }) => {
+    const params = new URLSearchParams(window.location.search);
+    
+    if (search) {
+      params.set('search', search);
+    } else {
+      params.delete('search');
+    }
+    
+    if (category) {
+      params.set('category', category);
+    } else {
+      params.delete('category');
+    }
+    
+    const newPath = params.toString() ? `/productos?${params.toString()}` : '/productos';
+    window.history.replaceState(null, '', newPath);
+    
+    setSearchQuery(search);
+    setSelectedCategory(category);
+  };
+
+  // Filter inactive products and transform + filter by search and category before rendering
   const products = useMemo(() => {
     return rawProducts
       .filter((p) => p.activo !== false)
-      .map((p) => transformProductForUser(p, user?.role));
-  }, [rawProducts, user?.role]);
+      .map((p) => transformProductForUser(p, user?.role))
+      .filter((p) => {
+        // Category filter
+        if (selectedCategory && p.categoria !== selectedCategory) {
+          return false;
+        }
+        
+        // Search query filter (search by name, category, and description)
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          const matchName = p.nombre.toLowerCase().includes(q);
+          const matchCategory = p.categoria.toLowerCase().includes(q);
+          const matchDesc = p.descripcion.toLowerCase().includes(q);
+          return matchName || matchCategory || matchDesc;
+        }
+        
+        return true;
+      });
+  }, [rawProducts, user?.role, searchQuery, selectedCategory]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       {/* Page Header */}
-      <div className="text-center mb-16 relative">
+      <div className="text-center mb-12 relative">
         <div className="absolute inset-0 flex justify-center items-center -z-10 opacity-30 blur-3xl">
           <div className="w-64 h-64 bg-indigo-500 rounded-full mix-blend-multiply filter animate-pulse"></div>
           <div className="w-64 h-64 bg-pink-500 rounded-full mix-blend-multiply filter animate-pulse delay-700 -ml-20"></div>
@@ -51,6 +106,13 @@ export default function ProductosPage() {
           Explora diseños únicos de la más alta calidad y listos para formar parte de tu Setup o tu Hogar.
         </p>
       </div>
+
+      {/* Filter Component */}
+      <ProductFilters
+        initialSearch={initialSearch}
+        initialCategory={initialCategory}
+        onFilterChange={handleFilterChange}
+      />
 
       {/* Loading Skeletons */}
       {loading && (
@@ -84,10 +146,18 @@ export default function ProductosPage() {
       {!loading && !error && products.length === 0 && (
         <div className="text-center py-20 bg-white/50 dark:bg-gray-900/50 border border-dashed border-gray-200 dark:border-gray-800 rounded-[2.5rem] max-w-xl mx-auto p-10">
           <span className="text-5xl block mb-4">📦</span>
-          <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">No hay productos disponibles</h3>
+          <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">No se encontraron productos</h3>
           <p className="text-gray-500 dark:text-gray-400 text-sm font-light max-w-sm mx-auto">
-            Aún no se han agregado productos a la tienda. ¡Regresa pronto o inicia sesión para agregar nuevos productos desde el panel de administración!
+            Intenta cambiar los términos de búsqueda o de categoría para encontrar lo que buscas.
           </p>
+          {(searchQuery || selectedCategory) && (
+            <button
+              onClick={() => handleFilterChange({ search: '', category: '' })}
+              className="mt-6 px-5 py-2.5 rounded-xl bg-indigo-650 text-white text-sm font-bold hover:bg-indigo-700 transition-colors shadow-md"
+            >
+              Ver todos los productos
+            </button>
+          )}
         </div>
       )}
 
@@ -102,5 +172,18 @@ export default function ProductosPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ProductosPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center text-gray-500 dark:text-gray-400 font-medium">
+        <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        Cargando catálogo...
+      </div>
+    }>
+      <ProductosListContent />
+    </Suspense>
   );
 }

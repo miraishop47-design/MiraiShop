@@ -9,9 +9,7 @@ import { generateWhatsAppMessage } from '../../application/utils/generateWhatsAp
 
 export default function CartPage() {
   const { cart, updateQuantity, removeFromCart, clearCart, cartTotal } = useCart();
-  const { user } = useAuth();
-
-  const showPrice = user && (user.role === 'reseller' || user.role === 'admin');
+  const { user, loading } = useAuth();
 
   // Guest name state
   const [guestName, setGuestName] = useState('');
@@ -22,7 +20,7 @@ export default function CartPage() {
     setIsMounted(true);
   }, []);
 
-  if (!isMounted) {
+  if (!isMounted || loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center bg-gray-50/50 dark:bg-gray-955/50">
         <div className="text-center space-y-4">
@@ -32,6 +30,9 @@ export default function CartPage() {
       </div>
     );
   }
+
+  const isReseller = user?.role === 'reseller' || user?.role === 'admin';
+  const showPrice = isReseller;
 
   const formatCOP = (value: number) =>
     new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value);
@@ -58,14 +59,23 @@ export default function CartPage() {
     try {
       setIsCheckingOut(true);
 
-      const orderItems = cart.map(item => ({
-        productId: item.id,
-        nombre: item.nombre,
-        imagen: item.imagen,
-        precio: item.precio,
-        cantidad: item.cantidad,
-        subtotal: item.precio * item.cantidad
-      }));
+      const orderItems = cart.map(item => {
+        const isPack = !!item.isPackageSale;
+        return {
+          productId: item.productId,
+          nombre: item.nombre,
+          imagen: item.imagen,
+          precio: item.precio,
+          cantidad: item.cantidad,
+          subtotal: item.precio * item.cantidad,
+          isPackageSale: isPack ? true : undefined,
+          selectedPackageId: item.selectedPackageId,
+          packageQuantity: isPack ? item.cantidad : undefined,
+          unitsPerPackage: isPack ? item.unitsPerPackage : undefined,
+          totalUnits: isPack ? item.cantidad * (item.unitsPerPackage || 0) : undefined,
+          precioPaquete: isPack ? item.precioPaquete : undefined,
+        };
+      });
 
       const newOrder = {
         userId: user?.id || 'invitado',
@@ -88,13 +98,11 @@ export default function CartPage() {
         clientName,
         accountType,
         cart,
-        cartTotal
+        cartTotal,
+        isReseller
       );
 
-      // Clear Cart
       clearCart();
-
-      // Open WhatsApp in a new tab
       window.open(whatsappUrl, '_blank');
     } catch (err: any) {
       console.error('Error creating order:', err);
@@ -152,41 +160,58 @@ export default function CartPage() {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={item.imagen} alt={item.nombre} className="w-full h-full object-cover" />
                     </div>
-
                     <div>
                       <h4 className="font-bold text-base text-gray-900 dark:text-white leading-tight">{item.nombre}</h4>
-                      <p className="text-xs text-indigo-500 font-semibold mt-1">Precio unitario: {showPrice ? formatCOP(item.precio) : 'Solo mayoristas'}</p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">Stock disponible: {item.stock} unidades</p>
+                      {item.isPackageSale ? (
+                        <>
+                          {isReseller && <p className="text-xs text-indigo-500 font-semibold mt-1">Precio por paquete: {formatCOP(item.precio)}</p>}
+                          <p className="text-[11px] text-gray-400 mt-0.5">Contenido: {item.unitsPerPackage} unidades por paquete</p>
+                          <p className="text-[11px] text-gray-400 mt-0.5">Paquetes disponibles: {item.availablePackages}</p>
+                          <p className="text-xs font-bold text-pink-600 dark:text-pink-400 mt-1">Total unidades: {item.cantidad * (item.unitsPerPackage || 0)} unds.</p>
+                        </>
+                      ) : (
+                        <>
+                          {isReseller && <p className="text-xs text-indigo-500 font-semibold mt-1">Precio unitario: {formatCOP(item.precio)}</p>}
+                          <p className="text-[11px] text-gray-400 mt-0.5">Stock disponible: {item.stock} unidades</p>
+                        </>
+                      )}
                     </div>
                   </div>
 
                   {/* Actions & Quantity */}
                   <div className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto">
                     {/* Quantity Controls */}
-                    <div className="flex items-center border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden bg-indigno-100 dark:bg-indigno-900/30">
-                      <button
-                        onClick={() => updateQuantity(item.id, item.cantidad - 1)}
-                        disabled={isCheckingOut}
-                        className="px-3 py-1.5 hover:bg-indigo-200 dark:hover:bg-indigo-800/50 text-gray-650 dark:text-gray-300 font-bold transition-all disabled:opacity-50"
-                      >
-                        -
-                      </button>
-                      <span className="px-4 py-1.5 font-bold text-gray-900 dark:text-white text-sm w-12 text-center border-x border-gray-200 dark:border-gray-800">
-                        {item.cantidad}
-                      </span>
-                      <button
-                        onClick={() => updateQuantity(item.id, item.cantidad + 1)}
-                        disabled={isCheckingOut}
-                        className="px-3 py-1.5 hover:bg-indigo-200 dark:hover:bg-indigo-800/50 text-gray-650 dark:text-gray-300 font-bold transition-all disabled:opacity-50"
-                      >
-                        +
-                      </button>
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="flex items-center border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+                        <button
+                          onClick={() => updateQuantity(item.id, item.cantidad - 1)}
+                          disabled={isCheckingOut}
+                          className="px-3 py-1.5 hover:bg-indigo-200 dark:hover:bg-indigo-800/50 text-gray-650 dark:text-gray-300 font-bold transition-all disabled:opacity-50"
+                        >
+                          -
+                        </button>
+                        <span className="px-4 py-1.5 font-bold text-gray-900 dark:text-white text-sm w-12 text-center border-x border-gray-200 dark:border-gray-800">
+                          {item.cantidad}
+                        </span>
+                        <button
+                          onClick={() => updateQuantity(item.id, item.cantidad + 1)}
+                          disabled={isCheckingOut}
+                          className="px-3 py-1.5 hover:bg-indigo-200 dark:hover:bg-indigo-800/50 text-gray-655 dark:text-gray-300 font-bold transition-all disabled:opacity-50"
+                        >
+                          +
+                        </button>
+                      </div>
+                      {item.isPackageSale && (
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">paquetes</span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-4">
-                      <span className="font-black text-gray-900 dark:text-white text-base min-w-[80px] text-right">
-                        {showPrice ? formatCOP(item.precio * item.cantidad) : 'Oculto'}
-                      </span>
+                      {isReseller && (
+                        <span className="font-black text-gray-900 dark:text-white text-base min-w-[80px] text-right">
+                          {formatCOP(item.precio * item.cantidad)}
+                        </span>
+                      )}
                       <button
                         onClick={() => removeFromCart(item.id)}
                         disabled={isCheckingOut}
@@ -245,21 +270,25 @@ export default function CartPage() {
 
             {/* Price Calculations */}
             <div className="space-y-3 text-sm">
-              <div className="flex justify-between text-gray-500 dark:text-gray-400">
-                <span>Subtotal</span>
-                <span>{showPrice ? formatCOP(cartTotal) : 'Oculto'}</span>
-              </div>
+              {isReseller && (
+                <div className="flex justify-between text-gray-500 dark:text-gray-400">
+                  <span>Subtotal</span>
+                  <span>{formatCOP(cartTotal)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-gray-500 dark:text-gray-400">
                 <span>Envío</span>
                 <span className="text-emerald-500 font-semibold">Por acordar</span>
               </div>
               <div className="flex justify-between font-black text-gray-900 dark:text-white text-lg pt-3 border-t border-gray-100 dark:border-gray-800">
                 <span>Total</span>
-                <span className="text-indigo-600 dark:text-indigo-400">{showPrice ? formatCOP(cartTotal) : 'Oculto'}</span>
+                <span className="text-indigo-600 dark:text-indigo-400">
+                  {isReseller ? formatCOP(cartTotal) : 'A convenir'}
+                </span>
               </div>
             </div>
 
-            {/* Botón de compra definitivo con el ícono perfectamente centrado y colores oficiales */}
+            {/* Botón de compra */}
             {!showPrice ? (
               <Link
                 href={user ? "/productos" : "/auth/login"}
@@ -280,7 +309,6 @@ export default function CartPage() {
                   </>
                 ) : (
                   <>
-                    {/* SVG Oficial de WhatsApp con simetría perfecta */}
                     <svg
                       className="w-7 h-7 text-white drop-shadow-sm opacity-95 group-hover:opacity-100 transition-opacity"
                       fill="currentColor"

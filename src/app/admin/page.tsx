@@ -5,15 +5,19 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
 import { productService } from '../../application/services/productService';
-import { Product } from '../../domain/entities/Product';
+import { Product, PackageOption } from '../../domain/entities/Product';
 
 const CATEGORIES = [
-  'Gamer',
-  'Decoración',
-  'Tecnología',
-  'Hogar',
-  'Personalizados',
-  'Muy populares'
+  "Hogar",
+  "Organización",
+  "Gaming",
+  "Decoración",
+  "Oficina",
+  "Accesorios",
+  "Tecnología",
+  "Automotriz",
+  "Colección",
+  "Personalizados"
 ];
 
 export default function AdminPage() {
@@ -28,15 +32,28 @@ export default function AdminPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     nombre: '',
-    precioCliente: '',
-    precioMayorista: '',
     stock: '',
     categoria: CATEGORIES[0],
     descripcion: '',
     imagen: '',
     imagenes: [''],
     activo: true,
+    isPackageSale: false,
+    unitsPerPackage: '',
+    availablePackages: '',
+    precioPaquete: '',
+    packageOptions: [] as PackageOption[],
+    isMadeToOrder: false,
   });
+
+  // Sub-form state for reseller packages
+  const [packForm, setPackForm] = useState({
+    unitsPerPackage: '',
+    availablePackages: '',
+    wholesalePrice: '',
+  });
+  const [editingPackId, setEditingPackId] = useState<string | null>(null);
+  const [packError, setPackError] = useState<string | null>(null);
 
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
@@ -111,18 +128,44 @@ export default function AdminPage() {
 
   const handleEditClick = (product: Product) => {
     setEditingId(product.id || null);
+    
+    let legacyOpts: PackageOption[] = [];
+    if (product.isPackageSale && product.unitsPerPackage) {
+      legacyOpts = [{
+        id: 'default-pack',
+        unitsPerPackage: product.unitsPerPackage,
+        availablePackages: product.availablePackages || 0,
+        wholesalePrice: product.precioPaquete || product.precioMayorista || 0
+      }];
+    }
+    const packOptions = product.packageOptions && product.packageOptions.length > 0
+      ? [...product.packageOptions]
+      : legacyOpts;
+
     setForm({
       nombre: product.nombre,
-      precioCliente: String(product.precioCliente || 0),
-      precioMayorista: String(product.precioMayorista || 0),
       stock: String(product.stock),
       categoria: product.categoria,
       descripcion: product.descripcion,
       imagen: product.imagen || '',
       imagenes: product.imagenes && product.imagenes.length > 0 ? [...product.imagenes] : [''],
       activo: product.activo !== undefined ? product.activo : true,
+      isPackageSale: !!product.isPackageSale,
+      unitsPerPackage: product.unitsPerPackage ? String(product.unitsPerPackage) : '',
+      availablePackages: product.availablePackages ? String(product.availablePackages) : '',
+      precioPaquete: product.precioPaquete ? String(product.precioPaquete) : '',
+      packageOptions: packOptions,
+      isMadeToOrder: !!product.isMadeToOrder,
     });
-    // Scroll form into view on mobile
+
+    setPackForm({
+      unitsPerPackage: '',
+      availablePackages: '',
+      wholesalePrice: '',
+    });
+    setEditingPackId(null);
+    setPackError(null);
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -130,17 +173,117 @@ export default function AdminPage() {
     setEditingId(null);
     setForm({
       nombre: '',
-      precioCliente: '',
-      precioMayorista: '',
       stock: '',
       categoria: CATEGORIES[0],
       descripcion: '',
       imagen: '',
       imagenes: [''],
       activo: true,
+      isPackageSale: false,
+      unitsPerPackage: '',
+      availablePackages: '',
+      precioPaquete: '',
+      packageOptions: [],
+      isMadeToOrder: false,
     });
+    setPackForm({
+      unitsPerPackage: '',
+      availablePackages: '',
+      wholesalePrice: '',
+    });
+    setEditingPackId(null);
+    setPackError(null);
     setFormError(null);
     setFormSuccess(null);
+  };
+
+  const handlePackFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setPackForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddOrUpdatePack = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setPackError(null);
+
+    const units = Number(packForm.unitsPerPackage);
+    const qty = Number(packForm.availablePackages);
+    const price = Number(packForm.wholesalePrice);
+
+    if (!packForm.unitsPerPackage || units < 1) {
+      setPackError('Las unidades por paquete deben ser mayores a cero.');
+      return;
+    }
+    if (!form.isMadeToOrder && (packForm.availablePackages === '' || qty < 0)) {
+      setPackError('La cantidad de paquetes no puede ser negativa.');
+      return;
+    }
+    if (!packForm.wholesalePrice || price <= 0) {
+      setPackError('El precio del paquete debe ser mayor a cero.');
+      return;
+    }
+
+    const duplicate = form.packageOptions.find(opt => 
+      opt.unitsPerPackage === units && opt.id !== editingPackId
+    );
+    if (duplicate) {
+      setPackError(`Ya existe una configuración de paquete para ${units} unidades.`);
+      return;
+    }
+
+    let updatedOptions: PackageOption[];
+    const finalQty = form.isMadeToOrder ? 0 : qty;
+    if (editingPackId) {
+      updatedOptions = form.packageOptions.map(opt =>
+        opt.id === editingPackId 
+          ? { ...opt, unitsPerPackage: units, availablePackages: finalQty, wholesalePrice: price } 
+          : opt
+      );
+    } else {
+      const newOpt: PackageOption = {
+        id: `pack-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        unitsPerPackage: units,
+        availablePackages: finalQty,
+        wholesalePrice: price,
+      };
+      updatedOptions = [...form.packageOptions, newOpt];
+    }
+
+    setForm(prev => ({ ...prev, packageOptions: updatedOptions }));
+    
+    setPackForm({
+      unitsPerPackage: '',
+      availablePackages: '',
+      wholesalePrice: '',
+    });
+    setEditingPackId(null);
+  };
+
+  const handleEditPackClick = (e: React.MouseEvent, opt: PackageOption) => {
+    e.preventDefault();
+    setPackError(null);
+    setEditingPackId(opt.id);
+    setPackForm({
+      unitsPerPackage: String(opt.unitsPerPackage),
+      availablePackages: String(opt.availablePackages),
+      wholesalePrice: String(opt.wholesalePrice),
+    });
+  };
+
+  const handleDeletePackClick = (e: React.MouseEvent, optId: string) => {
+    e.preventDefault();
+    if (editingPackId === optId) {
+      setEditingPackId(null);
+      setPackForm({
+        unitsPerPackage: '',
+        availablePackages: '',
+        wholesalePrice: '',
+      });
+    }
+    setForm(prev => ({
+      ...prev,
+      packageOptions: prev.packageOptions.filter(o => o.id !== optId),
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -149,20 +292,38 @@ export default function AdminPage() {
     setFormError(null);
     setFormSuccess(null);
 
-    const priceClientNum = Number(form.precioCliente);
-    const priceResellerNum = Number(form.precioMayorista);
-    const stockNum = Number(form.stock);
+    const stockNum = form.isMadeToOrder ? 0 : Number(form.stock);
 
-    if (!form.nombre || priceClientNum <= 0 || priceResellerNum <= 0 || stockNum < 0) {
-      setFormError('Nombre, precios mayores a cero y stock válido son obligatorios.');
+    if (!form.nombre || (!form.isMadeToOrder && stockNum < 0)) {
+      setFormError(form.isMadeToOrder ? 'El nombre del producto es obligatorio.' : 'Nombre y stock válido son obligatorios.');
       setFormSubmitting(false);
       return;
+    }
+
+    const isPackageSale = form.isPackageSale;
+    let unitsPerPackageNum = undefined;
+    let availablePackagesNum = undefined;
+    let pricePackageNum = undefined;
+    let packageOptionsList = undefined;
+
+    if (isPackageSale) {
+      if (form.packageOptions.length === 0) {
+        setFormError('Debe agregar al menos una opción de paquete para habilitar la venta por paquetes.');
+        setFormSubmitting(false);
+        return;
+      }
+      
+      const firstOpt = form.packageOptions[0];
+      unitsPerPackageNum = firstOpt.unitsPerPackage;
+      availablePackagesNum = firstOpt.availablePackages;
+      pricePackageNum = firstOpt.wholesalePrice;
+      packageOptionsList = form.packageOptions;
     }
 
     const cleanImagenes = form.imagenes.map(u => u.trim()).filter(Boolean);
     const mainImgUrl = form.imagen.trim();
 
-    // Sync main cover image intoimagenes array if not present
+    // Sync main cover image into imagenes array if not present
     if (mainImgUrl && !cleanImagenes.includes(mainImgUrl)) {
       cleanImagenes.unshift(mainImgUrl);
     }
@@ -178,14 +339,18 @@ export default function AdminPage() {
     try {
       const productData = {
         nombre: form.nombre,
-        precioCliente: priceClientNum,
-        precioMayorista: priceResellerNum,
         stock: stockNum,
         categoria: form.categoria,
         descripcion: form.descripcion,
         imagen: finalCoverImg,
         imagenes: cleanImagenes,
         activo: form.activo,
+        isPackageSale,
+        unitsPerPackage: unitsPerPackageNum,
+        availablePackages: availablePackagesNum,
+        precioPaquete: pricePackageNum,
+        packageOptions: packageOptionsList,
+        isMadeToOrder: form.isMadeToOrder,
       };
 
       if (editingId) {
@@ -200,15 +365,25 @@ export default function AdminPage() {
       // Reset form
       setForm({
         nombre: '',
-        precioCliente: '',
-        precioMayorista: '',
         stock: '',
         categoria: CATEGORIES[0],
         descripcion: '',
         imagen: '',
         imagenes: [''],
         activo: true,
+        isPackageSale: false,
+        unitsPerPackage: '',
+        availablePackages: '',
+        precioPaquete: '',
+        packageOptions: [],
+        isMadeToOrder: false,
       });
+      setPackForm({
+        unitsPerPackage: '',
+        availablePackages: '',
+        wholesalePrice: '',
+      });
+      setEditingPackId(null);
     } catch (err: any) {
       setFormError(err.message || 'Error al guardar el producto.');
     } finally {
@@ -243,13 +418,22 @@ export default function AdminPage() {
             Gestiona el inventario de productos de MiraiShop en tiempo real.
           </p>
         </div>
-        <Link
-          href="/admin/orders"
-          className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold px-6 py-3 rounded-2xl shadow-lg shadow-indigo-500/20 active:scale-95 transition-all text-sm"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
-          Ver Pedidos
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href="/admin/orders"
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold px-6 py-3 rounded-2xl shadow-lg shadow-indigo-500/20 active:scale-95 transition-all text-sm"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+            Ver Pedidos
+          </Link>
+          <Link
+            href="/admin/preferences"
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white font-bold px-6 py-3 rounded-2xl shadow-lg shadow-pink-500/20 active:scale-95 transition-all text-sm"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+            Preferencias
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
@@ -286,48 +470,25 @@ export default function AdminPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 ml-1">Precio Cliente</label>
-                  <input
-                    type="number"
-                    name="precioCliente"
-                    value={form.precioCliente}
-                    onChange={handleChange}
-                    required
-                    min="1"
-                    placeholder="Cliente"
-                    className="w-full px-4 py-3 bg-gray-50/50 dark:bg-gray-955/50 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 dark:text-white outline-none transition-all font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 ml-1">Precio Mayorista</label>
-                  <input
-                    type="number"
-                    name="precioMayorista"
-                    value={form.precioMayorista}
-                    onChange={handleChange}
-                    required
-                    min="1"
-                    placeholder="Mayorista"
-                    className="w-full px-4 py-3 bg-gray-50/50 dark:bg-gray-955/50 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 dark:text-white outline-none transition-all font-medium"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+                           <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 ml-1">Stock</label>
                   <input
                     type="number"
                     name="stock"
-                    value={form.stock}
+                    value={form.isMadeToOrder ? '' : form.stock}
                     onChange={handleChange}
-                    required
+                    required={!form.isMadeToOrder}
+                    disabled={form.isMadeToOrder}
                     min="0"
-                    placeholder="15"
-                    className="w-full px-4 py-3 bg-gray-50/50 dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 dark:text-white outline-none transition-all font-medium"
+                    placeholder={form.isMadeToOrder ? 'Sin control' : '15'}
+                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all font-medium ${form.isMadeToOrder ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 border-gray-200 dark:border-gray-700 cursor-not-allowed' : 'bg-gray-50/50 dark:bg-gray-950/50 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white'}`}
                   />
+                  {form.isMadeToOrder && (
+                    <p className="text-[10px] text-gray-400 mt-1 font-light ml-1">
+                      Este producto no utiliza control de inventario
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 ml-1">Categoría</label>
@@ -335,7 +496,7 @@ export default function AdminPage() {
                     name="categoria"
                     value={form.categoria}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 bg-gray-50/50 dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 dark:text-white outline-none transition-all font-medium"
+                    className="w-full px-4 py-3 bg-gray-50/50 dark:bg-gray-955/50 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 dark:text-white outline-none transition-all font-medium"
                   >
                     {CATEGORIES.map((cat) => (
                       <option key={cat} value={cat}>
@@ -344,6 +505,21 @@ export default function AdminPage() {
                     ))}
                   </select>
                 </div>
+              </div>
+
+              {/* Checkbox Producto por Pedido */}
+              <div className="flex items-center gap-3 py-1">
+                <input
+                  type="checkbox"
+                  id="isMadeToOrder"
+                  name="isMadeToOrder"
+                  checked={form.isMadeToOrder}
+                  onChange={handleCheckboxChange}
+                  className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
+                />
+                <label htmlFor="isMadeToOrder" className="text-sm font-bold text-gray-700 dark:text-gray-300 cursor-pointer flex items-center gap-1.5">
+                  🛠️ Producto por pedido / sin control de stock
+                </label>
               </div>
 
               <div>
@@ -405,18 +581,130 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              <div className="flex items-center gap-3 py-2">
-                <input
-                  type="checkbox"
-                  id="activo"
-                  name="activo"
-                  checked={form.activo}
-                  onChange={handleCheckboxChange}
-                  className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                />
-                <label htmlFor="activo" className="text-sm font-bold text-gray-700 dark:text-gray-300 cursor-pointer">
-                  Producto Activo (Visible en tienda)
-                </label>
+              <div className="flex flex-col gap-3 py-2 border-y border-gray-100 dark:border-gray-800">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="activo"
+                    name="activo"
+                    checked={form.activo}
+                    onChange={handleCheckboxChange}
+                    className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
+                  />
+                  <label htmlFor="activo" className="text-sm font-bold text-gray-700 dark:text-gray-300 cursor-pointer">
+                    Producto Activo (Visible en tienda)
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="isPackageSale"
+                    name="isPackageSale"
+                    checked={form.isPackageSale}
+                    onChange={handleCheckboxChange}
+                    className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
+                  />
+                  <label htmlFor="isPackageSale" className="text-sm font-bold text-gray-700 dark:text-gray-300 cursor-pointer">
+                    Venta por paquetes (Revendedores)
+                  </label>
+                </div>
+
+                {form.isPackageSale && (
+                  <div className="flex flex-col gap-4 p-5 bg-gray-50 dark:bg-gray-850/50 border border-gray-150/40 dark:border-gray-800 rounded-3xl animate-fadeIn">
+                    <span className="block text-xs font-black text-indigo-500 uppercase tracking-wider ml-1">
+                      Configuración de Paquetes (Revendedores)
+                    </span>
+                    
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1.5 ml-1">Unids por Caja</label>
+                        <input
+                          type="number"
+                          name="unitsPerPackage"
+                          value={packForm.unitsPerPackage}
+                          onChange={handlePackFormChange}
+                          min="1"
+                          placeholder="Ej. 6"
+                          className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1.5 ml-1">Stock Paquetes</label>
+                        <input
+                          type="number"
+                          name="availablePackages"
+                          value={form.isMadeToOrder ? '' : packForm.availablePackages}
+                          onChange={handlePackFormChange}
+                          disabled={form.isMadeToOrder}
+                          min="0"
+                          placeholder={form.isMadeToOrder ? 'Sin control' : 'Ej. 20'}
+                          className={`w-full px-3 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 ${form.isMadeToOrder ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 border-gray-200 dark:border-gray-700 cursor-not-allowed' : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white'}`}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1.5 ml-1">Precio Mayorista</label>
+                        <input
+                          type="number"
+                          name="wholesalePrice"
+                          value={packForm.wholesalePrice}
+                          onChange={handlePackFormChange}
+                          min="1"
+                          placeholder="Ej. 50"
+                          className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                    </div>
+
+                    {packError && (
+                      <p className="text-xs text-red-500 font-bold ml-1">{packError}</p>
+                    )}
+
+                    <button
+                      onClick={handleAddOrUpdatePack}
+                      className="w-full py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-xs font-bold transition shadow-sm active:scale-98"
+                    >
+                      {editingPackId ? 'Actualizar paquete' : 'Agregar paquete'}
+                    </button>
+
+                    {form.packageOptions.length > 0 && (
+                      <div className="mt-2 space-y-2">
+                        <span className="block text-[10px] font-bold text-gray-400 uppercase ml-1">Paquetes configurados:</span>
+                        <div className="max-h-60 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
+                          {form.packageOptions.map((opt) => (
+                            <div key={opt.id} className="flex justify-between items-center bg-white dark:bg-gray-900 p-3 rounded-2xl border border-gray-200/60 dark:border-gray-800/80 shadow-sm transition hover:shadow">
+                              <div className="text-xs space-y-0.5">
+                                <span className="font-extrabold text-gray-955 dark:text-white">Caja x{opt.unitsPerPackage} und.</span>
+                                <div className="flex gap-3 text-[10px] font-medium text-gray-400">
+                                  <span>Precio: {formatCOP(opt.wholesalePrice)}</span>
+                                  <span>
+                                    {form.isMadeToOrder 
+                                      ? 'Bajo pedido' 
+                                      : `Stock: ${opt.availablePackages} pqts.`}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={(e) => handleEditPackClick(e, opt)}
+                                  className="px-2.5 py-1 text-[10px] font-bold text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-lg transition"
+                                >
+                                  Editar
+                                </button>
+                                <button
+                                  onClick={(e) => handleDeletePackClick(e, opt.id)}
+                                  className="px-2.5 py-1 text-[10px] font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-955/30 rounded-lg transition"
+                                >
+                                  Eliminar
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3 pt-2">
@@ -494,14 +782,41 @@ export default function AdminPage() {
                         </div>
                         <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-xs text-gray-400">
                           <span className="font-semibold text-indigo-500">{product.categoria}</span>
+                          {product.precioMayorista ? (
+                            <>
+                              <span>•</span>
+                              <span className="font-medium text-purple-600 dark:text-purple-400">P. Mayorista: {formatCOP(product.precioMayorista)}</span>
+                            </>
+                          ) : null}
                           <span>•</span>
-                          <span className="font-medium text-gray-600 dark:text-gray-300">P. Cliente: {formatCOP(product.precioCliente || 0)}</span>
-                          <span>•</span>
-                          <span className="font-medium text-purple-600 dark:text-purple-400">P. Mayorista: {formatCOP(product.precioMayorista || 0)}</span>
-                          <span>•</span>
-                          <span className={product.stock <= 0 ? 'text-red-500 font-bold' : 'text-emerald-500 font-bold'}>
-                            {product.stock <= 0 ? 'Agotado' : `${product.stock} unidades`}
-                          </span>
+                          {product.isMadeToOrder ? (
+                            <span className="text-indigo-550 dark:text-indigo-400 font-bold flex items-center gap-1">
+                              🛠️ Por pedido
+                            </span>
+                          ) : (
+                            <span className={product.stock <= 0 ? 'text-red-500 font-bold' : 'text-emerald-500 font-bold'}>
+                              {product.stock <= 0 ? 'Agotado' : `${product.stock} unidades`}
+                            </span>
+                          )}
+                          {product.isPackageSale && (
+                            <>
+                              <span>•</span>
+                              <span className="font-bold text-pink-500 uppercase flex flex-wrap gap-1.5 items-center">
+                                Paquetes: 
+                                {product.packageOptions && product.packageOptions.length > 0 ? (
+                                  product.packageOptions.map((opt) => (
+                                    <span key={opt.id} className="bg-pink-50 dark:bg-pink-950/20 px-1.5 py-0.5 rounded text-[10px] normal-case">
+                                      x{opt.unitsPerPackage} ({product.isMadeToOrder ? 'bajo pedido' : `${opt.availablePackages} disp.`} @ {formatCOP(opt.wholesalePrice)})
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="bg-pink-50 dark:bg-pink-955/20 px-1.5 py-0.5 rounded text-[10px] normal-case">
+                                    x{product.unitsPerPackage} ({product.isMadeToOrder ? 'bajo pedido' : `${product.availablePackages} disp.`} @ {formatCOP(product.precioPaquete || 0)})
+                                  </span>
+                                )}
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>

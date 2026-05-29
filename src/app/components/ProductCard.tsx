@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { UIProduct } from '../../application/utils/productTransformer';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { PackageOption } from '../../domain/entities/Product';
 
 interface ProductCardProps {
   product: UIProduct;
@@ -13,11 +14,34 @@ interface ProductCardProps {
 const formatCOP = (value: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value);
 
+const getPackageOptions = (prod: UIProduct): PackageOption[] => {
+  if (prod.packageOptions && prod.packageOptions.length > 0) {
+    return prod.packageOptions;
+  }
+  if (prod.isPackageSale && prod.unitsPerPackage) {
+    return [{
+      id: 'default-pack',
+      unitsPerPackage: prod.unitsPerPackage,
+      availablePackages: prod.availablePackages || 0,
+      wholesalePrice: prod.precioPaquete || prod.precio || 0
+    }];
+  }
+  return [];
+};
+
 export default function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
   const { user } = useAuth();
   const router = useRouter();
-  const isOutOfStock = product.stock <= 0;
+
+  const isReseller = user?.role === 'reseller' || user?.role === 'admin';
+  const isPack = !!product.isPackageSale;
+  const options = getPackageOptions(product);
+  const hasMultiplePacks = isPack && options.length > 1;
+  const totalPacks = isPack ? options.reduce((sum, o) => sum + o.availablePackages, 0) : 0;
+  const isMadeToOrder = !!product.isMadeToOrder;
+  const isOutOfStock = !isMadeToOrder && (isPack ? totalPacks <= 0 : product.stock <= 0);
+
   const mainImage = product.imagen || 'https://images.unsplash.com/photo-1612036781124-847f8939b154?auto=format&fit=crop&w=800&q=80';
 
   const showPrice = user && (user.role === 'reseller' || user.role === 'admin');
@@ -25,10 +49,26 @@ export default function ProductCard({ product }: ProductCardProps) {
   return (
     <div className="group bg-white dark:bg-gray-900 rounded-3xl border border-gray-200/50 dark:border-gray-800/50 overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 flex flex-col h-full relative">
       
-      {/* Category Tag */}
-      <span className="absolute top-4 left-4 z-10 bg-black/60 backdrop-blur-md text-white text-xs font-semibold px-3.5 py-1.5 rounded-full border border-white/10 tracking-wide">
-        {product.categoria}
-      </span>
+      {/* Badges Container */}
+      <div className="absolute top-4 left-4 right-4 z-10 flex flex-wrap gap-2 items-center pointer-events-none">
+        <span className="bg-black/60 backdrop-blur-md text-white text-xs font-semibold px-3.5 py-1.5 rounded-full border border-white/10 tracking-wide pointer-events-auto">
+          {product.categoria}
+        </span>
+        
+        {isPack && (
+          <span className="bg-pink-600/90 backdrop-blur-md text-white text-[10px] font-black px-3.5 py-1.5 rounded-full border border-pink-500/30 uppercase tracking-wider pointer-events-auto">
+            {options.length === 1 
+              ? `Caja x${options[0].unitsPerPackage} und.` 
+              : `Cajas x${options.map(o => o.unitsPerPackage).join('/')} und.`}
+          </span>
+        )}
+
+        {isMadeToOrder && (
+          <span className="bg-amber-600/95 backdrop-blur-md text-white text-[10px] font-black px-3.5 py-1.5 rounded-full border border-amber-500/20 tracking-wider uppercase animate-pulse pointer-events-auto">
+            🛠️ Por pedido
+          </span>
+        )}
+      </div>
 
       {/* Image Container */}
       <div className="relative h-64 w-full bg-gray-100 dark:bg-gray-955 overflow-hidden flex-shrink-0">
@@ -62,24 +102,49 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         <div>
           <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100 dark:border-gray-800">
-            <div className="flex flex-col">
-              <span className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-0.5">Precio</span>
-              {showPrice ? (
-                <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
-                  {formatCOP(product.precio)}
-                </span>
-              ) : (
-                <span className="text-sm font-bold text-gray-500 dark:text-gray-400 italic">
-                  Solo mayoristas
-                </span>
-              )}
-            </div>
-            <div className="text-right">
-              <span className="block text-xs text-gray-400 font-bold uppercase tracking-wider mb-0.5">Disponibilidad</span>
-              <span className={`text-sm font-black ${isOutOfStock ? 'text-red-500' : 'text-emerald-500'}`}>
-                {isOutOfStock ? '0 unidades' : `${product.stock} disp.`}
-              </span>
-            </div>
+            {isReseller ? (
+              <>
+                <div className="flex flex-col">
+                  <span className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-0.5">
+                    {isPack && options.length > 1 ? 'Desde' : 'Precio'}
+                  </span>
+                  <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
+                    {formatCOP(product.precio)}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="block text-xs text-gray-400 font-bold uppercase tracking-wider mb-0.5">Disponibilidad</span>
+                  <span className={`text-sm font-black ${isOutOfStock ? 'text-red-500' : 'text-emerald-500'}`}>
+                    {isMadeToOrder 
+                      ? 'Bajo pedido' 
+                      : isOutOfStock 
+                        ? 'Agotado' 
+                        : isPack 
+                          ? `${totalPacks} pqts.` 
+                          : `${product.stock} disp.`}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex flex-col">
+                  <span className="text-xs text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider mb-0.5">
+                    Precio
+                  </span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                    Precio disponible al finalizar pedido
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="block text-xs text-gray-400 font-bold uppercase tracking-wider mb-0.5">Stock</span>
+                  <span className={`text-sm font-black ${isOutOfStock ? 'text-red-500' : 'text-emerald-500'}`}>
+                    {isMadeToOrder 
+                      ? 'Bajo pedido' 
+                      : isOutOfStock ? 'Agotado' : `${product.stock} disp.`}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
 
           {showPrice ? (
@@ -87,15 +152,19 @@ export default function ProductCard({ product }: ProductCardProps) {
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                if (product.id) {
+                if (hasMultiplePacks) {
+                  window.location.href = `/products/${product.id}`;
+                } else if (product.id) {
                   addToCart(product, 1);
                 }
               }}
               disabled={isOutOfStock}
               className={`w-full py-3.5 rounded-2xl font-bold transition-all text-sm shadow-md flex items-center justify-center gap-2 active:scale-97 mt-5 ${isOutOfStock ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed dark:bg-gray-800/40 dark:text-gray-600' : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-indigo-500/10'}`}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-              {isOutOfStock ? 'Agotado' : 'Agregar al carrito'}
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+              {hasMultiplePacks 
+                ? 'Elegir opciones' 
+                : (isOutOfStock ? 'Agotado' : isPack ? 'Agregar Paquete' : 'Agregar al carrito')}
             </button>
           ) : (
             <button

@@ -7,6 +7,13 @@ export interface OrderItem {
   precio: number;
   cantidad: number;
   subtotal: number;
+  isPackageSale?: boolean;
+  selectedPackageId?: string;
+  packageQuantity?: number;
+  unitsPerPackage?: number;
+  totalUnits?: number;
+  precioPaquete?: number;
+  isMadeToOrder?: boolean;
 }
 
 export interface Order {

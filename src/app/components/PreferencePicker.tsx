@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { saveUserPreferences, loadUserPreferences } from '../../application/services/preferenceService';
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -14,46 +16,74 @@ interface Category {
 
 const CATEGORIES: Category[] = [
   {
-    id: 'geek',
-    label: 'Gamer',
-    emoji: '🎮',
-    color: 'from-violet-500 to-purple-600',
-    items: ['Anime', 'Gaming', 'Pokémon', 'Marvel', 'DC', 'Star Wars', 'Harry Potter', 'Manga', 'Funko Style', 'Retro Gaming'],
-  },
-  {
-    id: 'deco',
-    label: 'Decoración',
-    emoji: '🏡',
-    color: 'from-emerald-400 to-teal-600',
-    items: ['Naturaleza', 'Plantas', 'Minimalista', 'Moderno', 'Vintage', 'Decoración gamer', 'Decoración LED', 'Arte abstracto'],
-  },
-  {
-    id: 'tech',
-    label: 'Tecnología',
-    emoji: '💡',
-    color: 'from-cyan-400 to-blue-600',
-    items: ['Soportes para celular', 'Accesorios PC', 'Organizadores', 'Gadgets', 'Desk setup', 'Cable management'],
-  },
-  {
-    id: 'home',
+    id: 'hogar',
     label: 'Hogar',
     emoji: '🏠',
     color: 'from-amber-400 to-orange-500',
-    items: ['Cocina', 'Baño', 'Oficina', 'Macetas', 'Llaveros', 'Organizadores'],
+    items: ['Cocina', 'Baño', 'Mesa', 'Decoración plantas', 'Llaveros', 'Detalles'],
   },
   {
-    id: 'custom',
-    label: 'Personalizados',
-    emoji: '✨',
+    id: 'organizacion',
+    label: 'Organización',
+    emoji: '📦',
+    color: 'from-emerald-400 to-teal-600',
+    items: ['Organizadores escritorio', 'Cajas de almacenamiento', 'Soportes pared', 'Clips cables'],
+  },
+  {
+    id: 'gaming',
+    label: 'Gaming',
+    emoji: '🎮',
+    color: 'from-violet-500 to-purple-600',
+    items: ['Consolas', 'Desk Setup', 'Iluminación RGB', 'Soportes de control', 'Teclados', 'Accesorios setup', 'Audífonos', 'Decoración temática'],
+  },
+  {
+    id: 'decoracion',
+    label: 'Decoración',
+    emoji: '🏡',
     color: 'from-pink-400 to-rose-600',
-    items: ['Nombres personalizados', 'Logos', 'Regalos', 'Parejas', 'Mascotas', 'Fotos en relieve'],
+    items: ['Macetas', 'Lámparas LED', 'Arte abstracto', 'Minimalista', 'Moderno', 'Vintage'],
   },
   {
-    id: 'popular',
-    label: 'Muy populares',
+    id: 'oficina',
+    label: 'Oficina',
+    emoji: '💼',
+    color: 'from-cyan-400 to-blue-600',
+    items: ['Accesorios escritorio', 'Soportes monitor', 'Tarjeteros', 'Lapiceros', 'Organizadores'],
+  },
+  {
+    id: 'accesorios',
+    label: 'Accesorios',
+    emoji: '🎒',
+    color: 'from-indigo-400 to-purple-500',
+    items: ['Llaveros', 'Pines', 'Accesorios de mochila', 'Coleccionables'],
+  },
+  {
+    id: 'tecnologia',
+    label: 'Tecnología',
+    emoji: '💡',
+    color: 'from-sky-400 to-indigo-500',
+    items: ['Soportes para celular', 'Soportes laptop', 'Accesorios PC', 'Organizadores de cables', 'Desk pads', 'Gadgets'],
+  },
+  {
+    id: 'automotriz',
+    label: 'Automotriz',
+    emoji: '🚗',
+    color: 'from-gray-400 to-slate-600',
+    items: ['Soportes de celular auto', 'Accesorios de tablero', 'Organizadores de carro'],
+  },
+  {
+    id: 'coleccion',
+    label: 'Colección',
     emoji: '🔥',
     color: 'from-red-400 to-orange-600',
-    items: ['Llaveros', 'Figuras anime', 'Soportes gamer', 'Organizadores', 'Macetas', 'Lámparas LED', 'Accesorios escritorio', 'Soportes controles', 'Cosas personalizadas'],
+    items: ['Figuras anime', 'Figuras geek', 'Modelos a escala', 'Réplicas', 'Arte temático'],
+  },
+  {
+    id: 'personalizados',
+    label: 'Personalizados',
+    emoji: '✨',
+    color: 'from-yellow-400 to-amber-500',
+    items: ['Nombres', 'Logos', 'Regalos especiales', 'Mascotas', 'Fotos', 'Diseños únicos'],
   },
 ];
 
@@ -62,24 +92,41 @@ const LS_KEY = 'mirai_preferences';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Selections = Record<string, string[]>; // categoryId -> selected items
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function PreferencePicker() {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [selections, setSelections] = useState<Selections>({});
-  const [saved, setSaved] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
 
-  // Load from localStorage on mount
+  // Load preferences: from DB if logged in, otherwise from localStorage
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      if (raw) setSelections(JSON.parse(raw));
-    } catch {
-      // ignore
-    }
-  }, []);
+    const load = async () => {
+      if (user?.id) {
+        try {
+          const pref = await loadUserPreferences(user.id);
+          if (pref) {
+            setSelections(pref.selections);
+            return;
+          }
+        } catch (e) {
+          console.warn('Could not load preferences from DB, falling back to localStorage', e);
+        }
+      }
+      // Fallback: localStorage
+      try {
+        const raw = localStorage.getItem(LS_KEY);
+        if (raw) setSelections(JSON.parse(raw));
+      } catch {
+        // ignore
+      }
+    };
+    load();
+  }, [user?.id]);
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -90,7 +137,7 @@ export default function PreferencePicker() {
   const totalSelected = Object.values(selections).flat().length;
 
   const toggleItem = useCallback((categoryId: string, item: string) => {
-    setSaved(false);
+    setSaveStatus('idle');
     setSelections(prev => {
       const current = prev[categoryId] ?? [];
       const next = current.includes(item)
@@ -103,16 +150,34 @@ export default function PreferencePicker() {
   const toggleCategory = (id: string) =>
     setExpanded(prev => (prev === id ? null : id));
 
-  const handleSave = () => {
-    localStorage.setItem(LS_KEY, JSON.stringify(selections));
-    setSaved(true);
-    setTimeout(() => { setSaved(false); setOpen(false); }, 1200);
+  const handleSave = async () => {
+    setSaveStatus('saving');
+    try {
+      // Always persist to localStorage (works when not logged in too)
+      localStorage.setItem(LS_KEY, JSON.stringify(selections));
+
+      // Persist to DB if the user is authenticated
+      if (user?.id) {
+        await saveUserPreferences(user.id, selections);
+      }
+
+      setSaveStatus('saved');
+      setTimeout(() => { setSaveStatus('idle'); setOpen(false); }, 1400);
+    } catch (err) {
+      console.error('Error saving preferences', err);
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    }
   };
 
   const handleClear = () => {
     setSelections({});
-    setSaved(false);
+    setSaveStatus('idle');
   };
+
+  const isSaving = saveStatus === 'saving';
+  const isSaved = saveStatus === 'saved';
+  const isError = saveStatus === 'error';
 
   return (
     <>
@@ -181,6 +246,11 @@ export default function PreferencePicker() {
                   <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                     Selecciona una o más categorías para personalizar tu experiencia
                   </p>
+                  {user && (
+                    <p className="mt-1 text-xs text-indigo-400 dark:text-indigo-300 font-medium">
+                      ✅ Tus preferencias se guardarán en tu cuenta
+                    </p>
+                  )}
                 </div>
                 <button
                   id="preference-picker-close"
@@ -301,18 +371,28 @@ export default function PreferencePicker() {
                 <button
                   id="preference-picker-save"
                   onClick={handleSave}
-                  disabled={totalSelected === 0}
+                  disabled={totalSelected === 0 || isSaving}
                   className={`
                     px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300
-                    ${saved
+                    ${isSaved
                       ? 'bg-green-500 text-white scale-95'
-                      : totalSelected > 0
-                        ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:-translate-y-0.5'
-                        : 'bg-gray-100 dark:bg-white/5 text-gray-400 cursor-not-allowed'
+                      : isError
+                        ? 'bg-red-500 text-white'
+                        : isSaving
+                          ? 'bg-indigo-400 text-white cursor-wait opacity-80'
+                          : totalSelected > 0
+                            ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:-translate-y-0.5'
+                            : 'bg-gray-100 dark:bg-white/5 text-gray-400 cursor-not-allowed'
                     }
                   `}
                 >
-                  {saved ? '¡Guardado! 🎉' : 'Guardar preferencias'}
+                  {isSaving
+                    ? 'Guardando…'
+                    : isSaved
+                      ? '¡Guardado! 🎉'
+                      : isError
+                        ? 'Error al guardar ✕'
+                        : 'Guardar preferencias'}
                 </button>
               </div>
             </div>

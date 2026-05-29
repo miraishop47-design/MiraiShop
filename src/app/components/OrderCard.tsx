@@ -52,7 +52,8 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
     }
   };
 
-  const totalItems = order.items.reduce((sum, item) => sum + item.cantidad, 0);
+  const totalPacks = order.items.reduce((sum, item) => sum + (item.isPackageSale ? item.cantidad : 0), 0);
+  const totalUnits = order.items.reduce((sum, item) => sum + (item.isPackageSale ? 0 : item.cantidad), 0);
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-gray-200/50 dark:border-slate-800/80 rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 relative overflow-hidden">
@@ -101,7 +102,12 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
         </div>
         <div className="text-right text-xs">
           <span className="font-bold text-gray-500 dark:text-gray-400">Artículos</span>
-          <p className="font-black text-sm text-gray-900 dark:text-white mt-0.5">{totalItems} unidades</p>
+          <p className="font-black text-sm text-gray-900 dark:text-white mt-0.5">
+            {totalUnits > 0 ? `${totalUnits} unds.` : ''}
+            {totalUnits > 0 && totalPacks > 0 ? ' + ' : ''}
+            {totalPacks > 0 ? `${totalPacks} pqts.` : ''}
+            {totalUnits === 0 && totalPacks === 0 ? '0 unidades' : ''}
+          </p>
         </div>
       </div>
 
@@ -148,7 +154,15 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
                 </div>
                 <div>
                   <h4 className="font-bold text-gray-900 dark:text-white truncate max-w-[150px] sm:max-w-xs">{item.nombre}</h4>
-                  <p className="text-gray-500 dark:text-gray-400 mt-0.5">Cant: <span className="font-bold dark:text-gray-300">{item.cantidad}</span> x {formatCOP(item.precio)}</p>
+                  {item.isPackageSale ? (
+                    <p className="text-gray-500 dark:text-gray-400 mt-0.5">
+                      Cant: <span className="font-bold text-pink-500">{item.cantidad} pqts.</span> (Caja x{item.unitsPerPackage}, {item.totalUnits} unds. totales) x {formatCOP(item.precio)}
+                    </p>
+                  ) : (
+                    <p className="text-gray-500 dark:text-gray-400 mt-0.5">
+                      Cant: <span className="font-bold dark:text-gray-300">{item.cantidad} unds.</span> x {formatCOP(item.precio)}
+                    </p>
+                  )}
                 </div>
               </div>
               <span className="font-bold text-gray-900 dark:text-white text-right">

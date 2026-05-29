@@ -10,15 +10,24 @@ export function generateWhatsAppMessage(
   clientName: string,
   accountType: string,
   items: CartItem[],
-  total: number
+  total: number,
+  isReseller?: boolean
 ): string {
   const header = `Hola Mirai Shop 👋\n\nHe registrado el pedido Nro: #${orderId}\n\nDetalle del pedido:\n`;
   
   const itemsList = items
-    .map(item => `• ${item.nombre} x${item.cantidad} - ${formatCOP(item.precio * item.cantidad)}`)
+    .map(item => {
+      const itemDesc = item.isPackageSale
+        ? `• ${item.nombre} (Caja x${item.unitsPerPackage}) x${item.cantidad} paquete(s) (${item.cantidad * (item.unitsPerPackage || 0)} unds.)`
+        : `• ${item.nombre} x${item.cantidad}`;
+      
+      return isReseller
+        ? `${itemDesc} - ${formatCOP(item.precio * item.cantidad)}`
+        : itemDesc;
+    })
     .join('\n');
     
-  const totalSection = `\n\nTotal: ${formatCOP(total)}`;
+  const totalSection = isReseller ? `\n\nTotal: ${formatCOP(total)}` : '';
   
   const clientSection = `\n\nCliente: ${clientName || 'Invitado'}\nTipo de cuenta: ${accountType}`;
   
