@@ -31,9 +31,9 @@ export default function HomePage() {
 
   // Filter inactive products and transform them before rendering
   const activeProducts = useMemo(() => {
-    return rawProducts
-      .filter((p) => p.activo !== false)
-      .map((p) => transformProductForUser(p, user?.role));
+    const filtered = rawProducts.filter((p) => p.activo !== false);
+    console.log(`[MiraiShop]\nProducts After Filters: ${filtered.length}`);
+    return filtered.map((p) => transformProductForUser(p, user?.role));
   }, [rawProducts, user?.role]);
 
   // Split products for different sections

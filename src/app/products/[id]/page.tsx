@@ -87,12 +87,13 @@ export default function ProductDetailPage() {
   }, [options, isPack, activePackId]);
 
   const activeQuantity = useMemo(() => {
+    if (product?.isMadeToOrder) return quantity;
     if (isPack && selectedPack) {
       const limit = selectedPack.availablePackages;
       return quantity > limit ? Math.max(1, limit) : quantity;
     }
     return quantity;
-  }, [quantity, isPack, selectedPack]);
+  }, [quantity, isPack, selectedPack, product?.isMadeToOrder]);
 
   // Enforce active status redirect if user is not admin
   const isDenied = rawProduct && rawProduct.activo === false && user?.role !== 'admin';

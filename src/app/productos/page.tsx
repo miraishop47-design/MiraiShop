@@ -69,8 +69,9 @@ function ProductosListContent() {
 
   // Filter inactive products and transform + filter by search and category before rendering
   const products = useMemo(() => {
-    return rawProducts
-      .filter((p) => p.activo !== false)
+    const active = rawProducts.filter((p) => p.activo !== false);
+    console.log(`[MiraiShop]\nProducts After Filters: ${active.length}`);
+    return active
       .map((p) => transformProductForUser(p, user?.role))
       .filter((p) => {
         // Category filter

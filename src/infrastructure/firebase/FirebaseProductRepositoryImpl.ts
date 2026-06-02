@@ -131,6 +131,7 @@ export class FirebaseProductRepositoryImpl implements ProductRepository {
 
   async create(product: Omit<Product, 'id' | 'createdAt'>): Promise<Product> {
     if (isMockFirebase) {
+      console.log('[MiraiShop]\nSaving Product...\nRepository: LocalStorage');
       const products = this.getMockProducts();
       const newProduct: Product = {
         id: `prod-${Date.now()}`,
@@ -142,6 +143,7 @@ export class FirebaseProductRepositoryImpl implements ProductRepository {
       return newProduct;
     }
 
+    console.log('[MiraiShop]\nSaving Product...\nRepository: Firestore');
     const cleanProduct = Object.fromEntries(
       Object.entries(product).filter(([_, v]) => v !== undefined)
     );
@@ -158,11 +160,16 @@ export class FirebaseProductRepositoryImpl implements ProductRepository {
 
   async getAll(): Promise<Product[]> {
     if (isMockFirebase) {
-      return this.getMockProducts().map(p => this.sanitizeProductForRole(p));
+      const products = this.getMockProducts().map(p => this.sanitizeProductForRole(p));
+      console.log(`[MiraiShop]\nData Source: localStorage/Mock\nProducts Loaded: ${products.length}`);
+      return products;
     }
 
     const q = query(this.collectionRef, orderBy('createdAt', 'desc'));
     const querySnapshot = await getDocs(q);
+    console.log(`[MiraiShop]\nCollection: productos\nFirestore Documents: ${querySnapshot.size}`);
+    const docIds = querySnapshot.docs.map(d => d.id).join(', ');
+    console.log(`[MiraiShop]\nDocuments Found: ${querySnapshot.size}\nIDs: ${docIds}`);
     const products: Product[] = [];
     querySnapshot.forEach((docSnap) => {
       const data = docSnap.data();
@@ -192,6 +199,7 @@ export class FirebaseProductRepositoryImpl implements ProductRepository {
       };
       products.push(this.sanitizeProductForRole(p));
     });
+    console.log(`[MiraiShop]\nData Source: Firestore\nProducts Loaded: ${products.length}`);
     return products;
   }
 
@@ -238,9 +246,13 @@ export class FirebaseProductRepositoryImpl implements ProductRepository {
   subscribeToAll(callback: (products: Product[]) => void): () => void {
     if (isMockFirebase) {
       // Send initial data
-      callback(this.getMockProducts().map(p => this.sanitizeProductForRole(p)));
+      const initialProducts = this.getMockProducts().map(p => this.sanitizeProductForRole(p));
+      console.log(`[MiraiShop]\nData Source: localStorage/Mock\nProducts Loaded: ${initialProducts.length}`);
+      callback(initialProducts);
       const handler = () => {
-        callback(this.getMockProducts().map(p => this.sanitizeProductForRole(p)));
+        const products = this.getMockProducts().map(p => this.sanitizeProductForRole(p));
+        console.log(`[MiraiShop]\nData Source: localStorage/Mock\nProducts Loaded: ${products.length}`);
+        callback(products);
       };
       window.addEventListener('mock_products_changed', handler);
       return () => {
@@ -250,6 +262,9 @@ export class FirebaseProductRepositoryImpl implements ProductRepository {
 
     const q = query(this.collectionRef, orderBy('createdAt', 'desc'));
     return onSnapshot(q, (querySnapshot) => {
+      console.log(`[MiraiShop]\nCollection: productos\nFirestore Documents: ${querySnapshot.size}`);
+      const docIds = querySnapshot.docs.map(d => d.id).join(', ');
+      console.log(`[MiraiShop]\nDocuments Found: ${querySnapshot.size}\nIDs: ${docIds}`);
       const products: Product[] = [];
       querySnapshot.forEach((docSnap) => {
         const data = docSnap.data();
@@ -279,6 +294,7 @@ export class FirebaseProductRepositoryImpl implements ProductRepository {
         };
         products.push(this.sanitizeProductForRole(p));
       });
+      console.log(`[MiraiShop]\nData Source: Firestore\nProducts Loaded: ${products.length}`);
       callback(products);
     }, (error) => {
       console.error("Error subscribing to products:", error);
