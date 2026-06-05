@@ -421,6 +421,13 @@ export default function AdminPage() {
         </div>
         <div className="flex flex-wrap gap-3">
           <Link
+            href="/admin/calculadora"
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white font-bold px-6 py-3 rounded-2xl shadow-lg shadow-teal-500/20 active:scale-95 transition-all text-sm"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+            Calculadora 3D
+          </Link>
+          <Link
             href="/admin/orders"
             className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold px-6 py-3 rounded-2xl shadow-lg shadow-indigo-500/20 active:scale-95 transition-all text-sm"
           >
