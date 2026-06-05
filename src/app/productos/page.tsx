@@ -36,6 +36,9 @@ function ProductosListContent() {
       const unsubscribe = productService.subscribeProducts((updatedProducts) => {
         setRawProducts(updatedProducts);
         setLoading(false);
+      }, (err) => {
+        setError(err.message || 'Error desconocido al suscribirse a los productos.');
+        setLoading(false);
       });
 
       return () => unsubscribe();

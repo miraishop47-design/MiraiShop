@@ -32,7 +32,7 @@ export default function CartPage() {
   }
 
   const isReseller = user?.role === 'reseller' || user?.role === 'admin';
-  const showPrice = isReseller;
+  const showPrice = !!user;
 
   const formatCOP = (value: number) =>
     new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value);
@@ -162,16 +162,16 @@ export default function CartPage() {
                     </div>
                     <div>
                       <h4 className="font-bold text-base text-gray-900 dark:text-white leading-tight">{item.nombre}</h4>
-                      {item.isPackageSale ? (
+                      {item.isPackageSale && isReseller ? (
                         <>
-                          {isReseller && <p className="text-xs text-indigo-500 font-semibold mt-1">Precio por paquete: {formatCOP(item.precio)}</p>}
+                          {showPrice && item.precio > 0 && <p className="text-xs text-indigo-500 font-semibold mt-1">Precio por paquete: {formatCOP(item.precio)}</p>}
                           <p className="text-[11px] text-gray-400 mt-0.5">Contenido: {item.unitsPerPackage} unidades por paquete</p>
                           <p className="text-[11px] text-gray-400 mt-0.5">Paquetes disponibles: {item.availablePackages}</p>
                           <p className="text-xs font-bold text-pink-600 dark:text-pink-400 mt-1">Total unidades: {item.cantidad * (item.unitsPerPackage || 0)} unds.</p>
                         </>
                       ) : (
                         <>
-                          {isReseller && <p className="text-xs text-indigo-500 font-semibold mt-1">Precio unitario: {formatCOP(item.precio)}</p>}
+                          {showPrice && item.precio > 0 && <p className="text-xs text-indigo-500 font-semibold mt-1">Precio unitario: {formatCOP(item.precio)}</p>}
                           <p className="text-[11px] text-gray-400 mt-0.5">Stock disponible: {item.stock} unidades</p>
                         </>
                       )}
@@ -201,13 +201,13 @@ export default function CartPage() {
                           +
                         </button>
                       </div>
-                      {item.isPackageSale && (
+                      {item.isPackageSale && isReseller && (
                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">paquetes</span>
                       )}
                     </div>
 
                     <div className="flex items-center gap-4">
-                      {isReseller && (
+                      {showPrice && item.precio > 0 && (
                         <span className="font-black text-gray-900 dark:text-white text-base min-w-[80px] text-right">
                           {formatCOP(item.precio * item.cantidad)}
                         </span>
@@ -256,7 +256,7 @@ export default function CartPage() {
 
             {/* Price Calculations */}
             <div className="space-y-3 text-sm">
-              {isReseller && (
+              {showPrice && cartTotal > 0 && (
                 <div className="flex justify-between text-gray-500 dark:text-gray-400">
                   <span>Subtotal</span>
                   <span>{formatCOP(cartTotal)}</span>
@@ -269,7 +269,7 @@ export default function CartPage() {
               <div className="flex justify-between font-black text-gray-900 dark:text-white text-lg pt-3 border-t border-gray-100 dark:border-gray-800">
                 <span>Total</span>
                 <span className="text-indigo-600 dark:text-indigo-400">
-                  {isReseller ? formatCOP(cartTotal) : 'A convenir'}
+                  {showPrice && cartTotal > 0 ? formatCOP(cartTotal) : 'A convenir'}
                 </span>
               </div>
             </div>

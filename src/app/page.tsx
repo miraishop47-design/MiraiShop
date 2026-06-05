@@ -24,6 +24,9 @@ export default function HomePage() {
     const unsubscribe = productService.subscribeProducts((updatedProducts) => {
       setRawProducts(updatedProducts);
       setLoading(false);
+    }, (error) => {
+      console.error(error);
+      setLoading(false);
     });
 
     return () => unsubscribe();

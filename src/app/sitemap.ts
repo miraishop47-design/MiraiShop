@@ -8,12 +8,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const products = await productService.getProducts();
   const activeProducts = products.filter(p => p.activo !== false);
 
-  const productUrls = activeProducts.map((product) => ({
-    url: `${baseUrl}/products/${product.id}`,
-    lastModified: product.createdAt ? new Date(product.createdAt) : new Date(),
-    changeFrequency: 'weekly' as const,
-    priority: 0.8,
-  }));
+  const productUrls = activeProducts.map((product) => {
+    let lastModified = new Date();
+    if (product.createdAt) {
+      if (typeof product.createdAt === 'string' || typeof product.createdAt === 'number') {
+        lastModified = new Date(product.createdAt);
+      } else if (typeof (product.createdAt as any).toDate === 'function') {
+        lastModified = (product.createdAt as any).toDate();
+      }
+      if (isNaN(lastModified.getTime())) {
+        lastModified = new Date();
+      }
+    }
+
+    return {
+      url: `${baseUrl}/products/${product.id}`,
+      lastModified,
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    };
+  });
 
   return [
     {

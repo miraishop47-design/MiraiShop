@@ -10,6 +10,7 @@ export default function CartSidebar() {
   const { user } = useAuth();
 
   const isReseller = user?.role === 'reseller' || user?.role === 'admin';
+  const showPrice = !!user;
 
   const formatCOP = (value: number) =>
     new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value);
@@ -58,7 +59,7 @@ export default function CartSidebar() {
                   </div>
                   <div className="flex-grow min-w-0">
                     <h4 className="font-bold text-sm text-gray-900 dark:text-white truncate">{item.nombre}</h4>
-                    {isReseller && (
+                    {showPrice && item.precio > 0 && (
                       <p className="text-xs text-indigo-500 font-semibold mt-0.5">{formatCOP(item.precio)}</p>
                     )}
                     
@@ -98,7 +99,7 @@ export default function CartSidebar() {
               <div className="flex items-center justify-between font-bold text-gray-900 dark:text-white text-base">
                 <span>Total Estimado:</span>
                 <span className="text-indigo-600 dark:text-indigo-400">
-                  {isReseller ? formatCOP(cartTotal) : 'A convenir'}
+                  {showPrice && cartTotal > 0 ? formatCOP(cartTotal) : 'A convenir'}
                 </span>
               </div>
               

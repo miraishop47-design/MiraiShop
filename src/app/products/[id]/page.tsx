@@ -69,6 +69,7 @@ export default function ProductDetailPage() {
   }, [rawProduct, user?.role]);
 
   const isReseller = user?.role === 'reseller' || user?.role === 'admin';
+  const showPrice = !!user;
   const isPack = !!product?.isPackageSale;
   const isFav = product ? isFavorite(product.id!) : false;
 
@@ -265,11 +266,11 @@ export default function ProductDetailPage() {
             {/* Price */}
             <div className="mb-8">
               <p className="text-5xl font-black text-[#8B5CF6] tracking-tight drop-shadow-sm">
-                {isReseller 
-                  ? formatCOP(isOutOfStock ? 0 : (isPack && selectedPack ? selectedPack.wholesalePrice : product.precio))
-                  : '$ 0'} 
+                {showPrice && (product.precio > 0 || (isPack && selectedPack && isReseller))
+                  ? formatCOP(isOutOfStock ? 0 : (isPack && selectedPack && isReseller ? selectedPack.wholesalePrice : product.precio))
+                  : 'A convenir'} 
               </p>
-              {!isReseller && (
+              {!showPrice && (
                 <p className="text-sm text-[#8B5CF6] mt-2 font-medium bg-[#8B5CF6]/10 w-fit px-3 py-1 rounded-lg">
                   El precio se calcula por cotización privada
                 </p>
@@ -282,7 +283,7 @@ export default function ProductDetailPage() {
             </p>
 
             {/* Options (If pack) */}
-            {isPack && options.length > 0 && (
+            {isPack && options.length > 0 && isReseller && (
               <div className="mb-8 space-y-3">
                 <span className="block text-xs font-bold text-gray-500 uppercase tracking-widest">
                   Presentación
@@ -299,7 +300,7 @@ export default function ProductDetailPage() {
                       }`}
                     >
                       <span className="font-bold text-white">Caja x{opt.unitsPerPackage}</span>
-                      <span className="text-sm text-gray-400">{isReseller ? formatCOP(opt.wholesalePrice) : ''}</span>
+                      <span className="text-sm text-gray-400">{showPrice ? formatCOP(opt.wholesalePrice) : ''}</span>
                     </button>
                   ))}
                 </div>
@@ -352,9 +353,9 @@ export default function ProductDetailPage() {
                     TOTAL A PAGAR
                   </span>
                   <span className="text-3xl font-black text-white">
-                    {isReseller 
-                      ? formatCOP(isOutOfStock ? 0 : (isPack && selectedPack ? selectedPack.wholesalePrice : product.precio) * activeQuantity)
-                      : '$ 0'}
+                    {showPrice && (product.precio > 0 || (isPack && selectedPack && isReseller))
+                      ? formatCOP(isOutOfStock ? 0 : (isPack && selectedPack && isReseller ? selectedPack.wholesalePrice : product.precio) * activeQuantity)
+                      : 'A convenir'}
                   </span>
                 </div>
               </div>
@@ -388,7 +389,7 @@ export default function ProductDetailPage() {
               </button>
             </div>
             
-            {!isReseller && (
+            {!showPrice && (
               <div className="mt-6 text-center">
                 <p className="text-xs text-gray-500">
                   ¿Eres distribuidor?{' '}
@@ -455,7 +456,9 @@ export default function ProductDetailPage() {
               {isOutOfStock ? 'Agotado' : 'Total'}
             </span>
             <span className="text-xl font-black text-white tracking-tighter">
-              {isReseller ? formatCOP(isOutOfStock ? 0 : (isPack && selectedPack ? selectedPack.wholesalePrice : product.precio) * activeQuantity) : '$ 0'}
+              {showPrice && (product.precio > 0 || (isPack && selectedPack && isReseller))
+                ? formatCOP(isOutOfStock ? 0 : (isPack && selectedPack && isReseller ? selectedPack.wholesalePrice : product.precio) * activeQuantity)
+                : 'A convenir'}
             </span>
           </div>
 

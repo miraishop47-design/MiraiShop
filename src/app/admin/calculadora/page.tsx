@@ -213,7 +213,12 @@ export default function CalculadoraPage() {
     }, 500);
   };
 
-  const cartSubtotal = quoteCart.reduce((sum, item) => sum + item.precioTotal, 0);
+  const cartSubtotal = quoteCart.reduce((sum, item) => {
+    if (item.id === editingQuoteId) {
+      return sum + precioVentaTotal;
+    }
+    return sum + item.precioTotal;
+  }, 0);
   const finalShipping = isFreeShipping ? 0 : (shippingCost || 0);
   const cartTotal = cartSubtotal + finalShipping;
 
@@ -294,7 +299,7 @@ export default function CalculadoraPage() {
                 {!isFreeShipping && (
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 dark:text-gray-400 mb-1">Costo de Envío (COP)</label>
-                    <input type="number" value={shippingCost} onChange={e => setShippingCost(parseFloat(e.target.value))} min="0" className="w-full p-2.5 border border-slate-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input type="number" value={Number.isNaN(shippingCost) ? '' : shippingCost} onChange={e => setShippingCost(parseFloat(e.target.value))} min="0" className="w-full p-2.5 border border-slate-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
                 )}
               </div>
@@ -322,7 +327,7 @@ export default function CalculadoraPage() {
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase">Gramos</label>
                     <input 
-                      type="number" value={fil.weight} onChange={e => updateFilament(fil.id, 'weight', parseFloat(e.target.value))}
+                      type="number" value={Number.isNaN(fil.weight) ? '' : fil.weight} onChange={e => updateFilament(fil.id, 'weight', parseFloat(e.target.value))}
                       min="0" step="any"
                       className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                     />
@@ -330,7 +335,7 @@ export default function CalculadoraPage() {
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase">Precio Rollo KG</label>
                     <input 
-                      type="number" value={fil.pricePerKg} onChange={e => updateFilament(fil.id, 'pricePerKg', parseFloat(e.target.value))}
+                      type="number" value={Number.isNaN(fil.pricePerKg) ? '' : fil.pricePerKg} onChange={e => updateFilament(fil.id, 'pricePerKg', parseFloat(e.target.value))}
                       min="0"
                       className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                     />
@@ -350,26 +355,26 @@ export default function CalculadoraPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
               <div>
                 <label className="block text-sm font-medium text-slate-600 dark:text-gray-400 mb-2">Tiempo estimado (Hrs)</label>
-                <input type="number" value={time} onChange={e => setTime(parseFloat(e.target.value))} min="0" step="any" className="w-full p-3 border border-slate-200 dark:border-gray-700 rounded-xl bg-slate-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 outline-none" />
+                <input type="number" value={Number.isNaN(time) ? '' : time} onChange={e => setTime(parseFloat(e.target.value))} min="0" step="any" className="w-full p-3 border border-slate-200 dark:border-gray-700 rounded-xl bg-slate-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 outline-none" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-600 dark:text-gray-400 mb-2">Consumo Impresora (W)</label>
-                <input type="number" value={power} onChange={e => setPower(parseFloat(e.target.value))} min="0" className="w-full p-3 border border-slate-200 dark:border-gray-700 rounded-xl bg-slate-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 outline-none" />
+                <input type="number" value={Number.isNaN(power) ? '' : power} onChange={e => setPower(parseFloat(e.target.value))} min="0" className="w-full p-3 border border-slate-200 dark:border-gray-700 rounded-xl bg-slate-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 outline-none" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-600 dark:text-gray-400 mb-2">Precio Luz kWh (COP)</label>
-                <input type="number" value={powerPrice} onChange={e => setPowerPrice(parseFloat(e.target.value))} min="0" className="w-full p-3 border border-slate-200 dark:border-gray-700 rounded-xl bg-slate-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 outline-none" />
+                <input type="number" value={Number.isNaN(powerPrice) ? '' : powerPrice} onChange={e => setPowerPrice(parseFloat(e.target.value))} min="0" className="w-full p-3 border border-slate-200 dark:border-gray-700 rounded-xl bg-slate-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 outline-none" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-600 dark:text-gray-400 mb-2">Margen Ganancia (%)</label>
-                <input type="number" value={margin} onChange={e => setMargin(parseFloat(e.target.value))} min="0" className="w-full p-3 border border-slate-200 dark:border-gray-700 rounded-xl bg-slate-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 outline-none" />
+                <input type="number" value={Number.isNaN(margin) ? '' : margin} onChange={e => setMargin(parseFloat(e.target.value))} min="0" className="w-full p-3 border border-slate-200 dark:border-gray-700 rounded-xl bg-slate-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 outline-none" />
               </div>
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-4 bg-emerald-50 dark:bg-emerald-900/20 p-5 rounded-2xl border border-emerald-200 dark:border-emerald-800/50">
               <div className="w-full sm:w-1/3">
                 <label className="block text-sm font-bold text-emerald-700 dark:text-emerald-400 mb-2">Cantidad Piezas</label>
-                <input type="number" value={quantity} onChange={e => setQuantity(parseInt(e.target.value))} min="1" className="w-full p-3 border-2 border-emerald-400 rounded-xl font-bold text-center bg-white dark:bg-gray-900 outline-none focus:ring-4 focus:ring-emerald-500/20" />
+                <input type="number" value={Number.isNaN(quantity) ? '' : quantity} onChange={e => setQuantity(parseInt(e.target.value))} min="1" className="w-full p-3 border-2 border-emerald-400 rounded-xl font-bold text-center bg-white dark:bg-gray-900 outline-none focus:ring-4 focus:ring-emerald-500/20" />
               </div>
               <div className="w-full sm:w-2/3 text-center sm:text-right">
                 <span className="block text-sm font-medium text-slate-500 dark:text-gray-400 mb-1">Subtotal de esta pieza:</span>
@@ -388,7 +393,76 @@ export default function CalculadoraPage() {
           {/* Columna Derecha: Vista previa e Historial */}
           <section className="xl:col-span-5 flex flex-col gap-6">
             
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200 dark:border-gray-700 p-6 flex-grow shadow-sm flex flex-col">
+            {/* Desglose del Precio (Previsualización) */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200 dark:border-gray-700 p-6 shadow-sm flex flex-col">
+              <h2 className="text-xl font-bold mb-4 text-slate-800 dark:text-white flex items-center gap-2">
+                📊 Desglose del Precio
+              </h2>
+
+              <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-6 border border-blue-100 dark:border-blue-800/50">
+                <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 text-sm font-semibold">
+                  <span className="text-base">ℹ️</span>
+                  <span>Peso total acumulado de material:</span>
+                </div>
+                <span className="font-bold text-slate-900 dark:text-white">{pesoTotalAcumulado.toFixed(1)} gramos</span>
+              </div>
+
+              <div className="space-y-3">
+                {/* Costo Material Usado */}
+                <div className="flex justify-between items-center bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-4 border-l-4 border-l-blue-500 shadow-sm">
+                  <div>
+                    <h4 className="text-slate-700 dark:text-slate-300 font-semibold text-sm">Costo Material Usado</h4>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Valor exacto de los gramos fundidos</p>
+                  </div>
+                  <span className="text-lg font-black text-slate-900 dark:text-white">{formatCOP(costoMaterialTotal)}</span>
+                </div>
+
+                {/* Costo de Energía */}
+                <div className="flex justify-between items-center bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-4 border-l-4 border-l-blue-500 shadow-sm">
+                  <div>
+                    <h4 className="text-slate-700 dark:text-slate-300 font-semibold text-sm">Costo de Energía</h4>
+                  </div>
+                  <span className="text-lg font-black text-slate-900 dark:text-white">{formatCOP(costoLuz)}</span>
+                </div>
+
+                {/* Costo Base de Producción */}
+                <div className="flex justify-between items-center bg-slate-50 dark:bg-gray-800/50 border border-slate-200 dark:border-gray-700 rounded-xl p-4 border-l-4 border-l-slate-300 dark:border-l-gray-600 shadow-sm">
+                  <div>
+                    <h4 className="text-slate-700 dark:text-slate-300 font-semibold text-sm">Costo Base de Producción</h4>
+                  </div>
+                  <span className="text-lg font-black text-slate-900 dark:text-white">{formatCOP(costoProduccion)}</span>
+                </div>
+
+                {/* Fondo de Reposición */}
+                <div className="flex justify-between items-center bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50 rounded-xl p-4 border-l-4 border-l-amber-500 shadow-sm">
+                  <div>
+                    <h4 className="text-amber-700 dark:text-amber-500 font-semibold text-sm">Fondo de Reposición</h4>
+                    <p className="text-xs text-amber-600/70 dark:text-amber-500/70 mt-0.5">Costo del material usado multiplicado por 2</p>
+                  </div>
+                  <span className="text-lg font-black text-amber-700 dark:text-amber-500">{formatCOP(costoReposicion)}</span>
+                </div>
+
+                {/* Ganancia Neta */}
+                <div className="flex justify-between items-center bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-4 border-l-4 border-l-slate-300 dark:border-l-gray-600 shadow-sm">
+                  <div>
+                    <h4 className="text-slate-700 dark:text-slate-300 font-semibold text-sm">Ganancia Neta</h4>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Aplicada sobre el costo base de producción</p>
+                  </div>
+                  <span className="text-lg font-black text-slate-900 dark:text-white">{formatCOP(ganancia)}</span>
+                </div>
+
+                {/* Total de Venta */}
+                <div className="flex justify-between items-center bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/50 rounded-xl p-4 border-l-4 border-l-indigo-500 shadow-sm mt-4">
+                  <div>
+                    <h4 className="text-indigo-800 dark:text-indigo-400 font-bold text-sm">Precio Final de la Pieza</h4>
+                    <p className="text-xs text-indigo-600/70 dark:text-indigo-400/70 mt-0.5">Suma de producción, reposición y ganancia</p>
+                  </div>
+                  <span className="text-2xl font-black text-indigo-700 dark:text-indigo-400">{formatCOP(precioVentaTotal)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200 dark:border-gray-700 p-6 shadow-sm flex flex-col">
               <h2 className="text-xl font-bold mb-4 text-slate-800 dark:text-white flex items-center gap-2">
                 📋 Factura en Progreso ({quoteCart.length})
               </h2>
@@ -411,21 +485,28 @@ export default function CalculadoraPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-gray-800/50">
-                        {quoteCart.map(item => (
-                          <tr key={item.id} className="text-slate-700 dark:text-gray-300">
-                            <td className="py-3 pr-2">
-                              <span className="font-bold block text-slate-900 dark:text-white text-sm">{item.nombre}</span>
-                            </td>
-                            <td className="py-3 px-2 text-center text-sm">{item.cantidad}</td>
-                            <td className="py-3 pl-2 text-right font-bold text-slate-900 dark:text-white text-sm">{formatCOP(item.precioTotal)}</td>
-                            <td className="py-3 pl-2 text-right">
-                              <div className="flex justify-end gap-1">
-                                <button onClick={() => handleEditQuote(item)} className="p-1 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded" title="Editar">✏️</button>
-                                <button onClick={() => handleDeleteQuote(item.id)} className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded" title="Eliminar">❌</button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                        {quoteCart.map(item => {
+                          const isEditing = item.id === editingQuoteId;
+                          const currentTotal = isEditing ? precioVentaTotal : item.precioTotal;
+                          const currentQty = isEditing ? qty : item.cantidad;
+                          const currentName = isEditing ? (nombre || 'Pieza sin nombre') : item.nombre;
+                          
+                          return (
+                            <tr key={item.id} className="text-slate-700 dark:text-gray-300">
+                              <td className="py-3 pr-2">
+                                <span className="font-bold block text-slate-900 dark:text-white text-sm">{currentName}</span>
+                              </td>
+                              <td className="py-3 px-2 text-center text-sm">{currentQty}</td>
+                              <td className="py-3 pl-2 text-right font-bold text-slate-900 dark:text-white text-sm">{formatCOP(currentTotal)}</td>
+                              <td className="py-3 pl-2 text-right">
+                                <div className="flex justify-end gap-1">
+                                  <button onClick={() => handleEditQuote(item)} className="p-1 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded" title="Editar">✏️</button>
+                                  <button onClick={() => handleDeleteQuote(item.id)} className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded" title="Eliminar">❌</button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -529,16 +610,24 @@ export default function CalculadoraPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {quoteCart.map((item, index) => (
-                <tr key={index} className="align-top">
-                  <td className="py-5 px-4">
-                    <p className="font-bold text-slate-900 text-sm mb-1">{item.nombre}</p>
-                  </td>
-                  <td className="py-5 px-4 text-center font-medium text-slate-800">{item.cantidad}</td>
-                  <td className="py-5 px-4 text-right text-slate-800">{formatCOP(item.precioUnitario)}</td>
-                  <td className="py-5 px-4 text-right font-bold text-slate-900">{formatCOP(item.precioTotal)}</td>
-                </tr>
-              ))}
+              {quoteCart.map((item, index) => {
+                const isEditing = item.id === editingQuoteId;
+                const currentTotal = isEditing ? precioVentaTotal : item.precioTotal;
+                const currentQty = isEditing ? qty : item.cantidad;
+                const currentUnit = isEditing ? precioVentaUnitario : item.precioUnitario;
+                const currentName = isEditing ? (nombre || 'Pieza sin nombre') : item.nombre;
+
+                return (
+                  <tr key={index} className="align-top">
+                    <td className="py-5 px-4">
+                      <p className="font-bold text-slate-900 text-sm mb-1">{currentName}</p>
+                    </td>
+                    <td className="py-5 px-4 text-center font-medium text-slate-800">{currentQty}</td>
+                    <td className="py-5 px-4 text-right text-slate-800">{formatCOP(currentUnit)}</td>
+                    <td className="py-5 px-4 text-right font-bold text-slate-900">{formatCOP(currentTotal)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

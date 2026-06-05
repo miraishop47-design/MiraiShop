@@ -17,7 +17,7 @@ export function generateWhatsAppMessage(
   
   const itemsList = items
     .map(item => {
-      const itemDesc = item.isPackageSale
+      const itemDesc = item.isPackageSale && isReseller
         ? `• ${item.nombre} (Caja x${item.unitsPerPackage}) x${item.cantidad} paquete(s) (${item.cantidad * (item.unitsPerPackage || 0)} unds.)`
         : `• ${item.nombre} x${item.cantidad}`;
       

@@ -29,8 +29,8 @@ export const productService = {
     return getProductByIdUseCase.execute(id);
   },
 
-  subscribeProducts(callback: (products: Product[]) => void): () => void {
-    return getProductsUseCase.subscribe(callback);
+  subscribeProducts(callback: (products: Product[]) => void, onError?: (error: any) => void): () => void {
+    return getProductsUseCase.subscribe(callback, onError);
   },
 
   async updateProduct(id: string, product: Partial<Omit<Product, 'id' | 'createdAt'>>): Promise<void> {

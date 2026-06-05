@@ -104,6 +104,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await authRepository.logout();
     setUser(null);
     localStorage.removeItem('user_role');
+    localStorage.removeItem('mirai_shop_cart');
+    window.location.href = '/';
   };
 
   return (

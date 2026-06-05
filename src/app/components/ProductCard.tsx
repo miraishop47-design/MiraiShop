@@ -46,7 +46,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   const mainImage = product.imagen || 'https://images.unsplash.com/photo-1612036781124-847f8939b154?auto=format&fit=crop&w=800&q=80';
 
-  const showPrice = user && (user.role === 'reseller' || user.role === 'admin');
+  const showPrice = !!user;
   const isFav = isFavorite(product.id!);
 
   return (
@@ -189,9 +189,7 @@ export default function ProductCard({ product }: ProductCardProps) {
               className={`w-full py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl font-bold transition-all text-xs sm:text-sm shadow-md flex items-center justify-center gap-1 sm:gap-2 active:scale-95 mt-3 sm:mt-5 ${isOutOfStock ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed dark:bg-gray-800/40 dark:text-gray-600' : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-indigo-500/10'}`}
             >
               <svg className="w-4 h-4 sm:w-5 sm:h-5 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-              {hasMultiplePacks 
-                ? 'Opciones' 
-                : (isOutOfStock ? 'Agotado' : isPack ? 'Paquete' : 'Al carrito')}
+              {isOutOfStock ? 'Agotado' : 'Al carrito'}
             </button>
           ) : (
             <button

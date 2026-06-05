@@ -8,7 +8,7 @@ export class GetProductsUseCase {
     return this.productRepository.getAll();
   }
 
-  subscribe(callback: (products: Product[]) => void): () => void {
-    return this.productRepository.subscribeToAll(callback);
+  subscribe(callback: (products: Product[]) => void, onError?: (error: any) => void): () => void {
+    return this.productRepository.subscribeToAll(callback, onError);
   }
 }

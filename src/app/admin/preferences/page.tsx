@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { getPreferenceStats, PreferenceStats } from '../../../application/services/preferenceService';
+import { getAllUsers, updateUserRole, deleteUserRecord } from '../../../application/services/userService';
+import { User } from '../../../domain/entities/User';
 
 const ADMIN_EMAILS = ['miraishop47@gmail.com', 'ariaacris73@gmail.com'];
 
@@ -79,6 +81,9 @@ export default function AdminPreferencesPage() {
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [users, setUsers] = useState<User[]>([]);
+  const [fetchingUsers, setFetchingUsers] = useState(true);
+
   // Auth guard
   useEffect(() => {
     if (!loading && (!user || !ADMIN_EMAILS.includes(user.email))) {
@@ -102,6 +107,43 @@ export default function AdminPreferencesPage() {
     };
     load();
   }, [user]);
+
+  // Load users for management
+  useEffect(() => {
+    if (!user || !ADMIN_EMAILS.includes(user.email)) return;
+    const loadUsers = async () => {
+      try {
+        const data = await getAllUsers();
+        setUsers(data);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setFetchingUsers(false);
+      }
+    };
+    loadUsers();
+  }, [user]);
+
+  const handleRoleChange = async (userId: string, newRole: 'admin' | 'customer' | 'reseller') => {
+    if (!confirm(`¿Estás seguro de cambiar el rol a ${newRole}?`)) return;
+    try {
+      await updateUserRole(userId, newRole);
+      setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
+      alert(`Rol actualizado exitosamente a ${newRole}`);
+    } catch (e) {
+      alert('Error actualizando rol');
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar a este usuario de la base de datos? Perderá sus roles y permisos permanentemente.')) return;
+    try {
+      await deleteUserRecord(userId);
+      setUsers(users.filter(u => u.id !== userId));
+    } catch (e) {
+      alert('Error eliminando usuario');
+    }
+  };
 
   // ─── Loading / guard states ──────────────────────────────────────────────────
 
@@ -298,6 +340,68 @@ export default function AdminPreferencesPage() {
                   </time>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+        
+        {/* ── User Management ────────────────────────────────────────────── */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/8 shadow-sm p-6 overflow-hidden">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">👥 Gestión de Usuarios Registrados</h2>
+          
+          {fetchingUsers ? (
+            <div className="flex justify-center py-8">
+              <div className="inline-block w-8 h-8 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
+            </div>
+          ) : users.length === 0 ? (
+            <p className="text-center text-gray-400 py-8">No hay usuarios registrados en Firestore</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[600px]">
+                <thead>
+                  <tr className="border-b border-gray-100 dark:border-gray-800 text-xs text-gray-500 uppercase tracking-wider">
+                    <th className="py-3 px-4 font-semibold">Usuario</th>
+                    <th className="py-3 px-4 font-semibold">Correo</th>
+                    <th className="py-3 px-4 font-semibold text-center">Rol Actual</th>
+                    <th className="py-3 px-4 font-semibold text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {users.map(u => (
+                    <tr key={u.id} className="text-sm hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                      <td className="py-4 px-4 font-semibold text-gray-900 dark:text-gray-100">
+                        {u.name}
+                      </td>
+                      <td className="py-4 px-4 text-gray-600 dark:text-gray-400">
+                        {u.email}
+                      </td>
+                      <td className="py-4 px-4 text-center">
+                        <select 
+                          value={u.role}
+                          onChange={(e) => handleRoleChange(u.id, e.target.value as any)}
+                          className={`
+                            px-3 py-1.5 rounded-lg text-xs font-bold border-none outline-none appearance-none cursor-pointer text-center
+                            ${u.role === 'admin' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400' : 
+                              u.role === 'reseller' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400' : 
+                              'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'}
+                          `}
+                        >
+                          <option value="customer">Customer</option>
+                          <option value="reseller">Reseller</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      </td>
+                      <td className="py-4 px-4 text-right">
+                        <button 
+                          onClick={() => handleDeleteUser(u.id)}
+                          className="px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 dark:text-red-400 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-lg transition-colors"
+                        >
+                          Eliminar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

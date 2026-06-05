@@ -243,7 +243,7 @@ export class FirebaseProductRepositoryImpl implements ProductRepository {
     return this.sanitizeProductForRole(p);
   }
 
-  subscribeToAll(callback: (products: Product[]) => void): () => void {
+  subscribeToAll(callback: (products: Product[]) => void, onError?: (error: any) => void): () => void {
     if (isMockFirebase) {
       // Send initial data
       const initialProducts = this.getMockProducts().map(p => this.sanitizeProductForRole(p));
@@ -298,6 +298,7 @@ export class FirebaseProductRepositoryImpl implements ProductRepository {
       callback(products);
     }, (error) => {
       console.error("Error subscribing to products:", error);
+      if (onError) onError(error);
     });
   }
 
