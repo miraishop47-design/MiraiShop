@@ -34,19 +34,24 @@ export class FirebaseAuthRepositoryImpl implements AuthRepository {
     const firebaseUser = userCredential.user;
 
     let role: 'customer' | 'reseller' | 'admin' = 'customer';
-    if (firebaseUser.email === 'miraishop47@gmail.com') {
-      role = 'admin';
-      // Persist admin role to Firestore so it's always saved
-      await setDoc(doc(db, 'usuarios', firebaseUser.uid), {
-        role: 'admin',
-        email: firebaseUser.email,
-        name: firebaseUser.displayName || 'Admin',
-      }, { merge: true });
-    } else {
-      const userDoc = await getDoc(doc(db, 'usuarios', firebaseUser.uid));
-      if (userDoc.exists()) {
-        role = userDoc.data().role || 'customer';
+    try {
+      if (firebaseUser.email === 'miraishop47@gmail.com') {
+        role = 'admin';
+        // Persist admin role to Firestore so it's always saved
+        await setDoc(doc(db, 'usuarios', firebaseUser.uid), {
+          role: 'admin',
+          email: firebaseUser.email,
+          name: firebaseUser.displayName || 'Admin',
+        }, { merge: true });
+      } else {
+        const userDoc = await getDoc(doc(db, 'usuarios', firebaseUser.uid));
+        if (userDoc.exists()) {
+          role = userDoc.data().role || 'customer';
+        }
       }
+    } catch (error) {
+      console.error("Firestore permission error when getting role:", error);
+      // Fallback to role already set ('admin' if it was the hardcoded email, 'customer' otherwise)
     }
 
     return {
@@ -99,12 +104,16 @@ export class FirebaseAuthRepositoryImpl implements AuthRepository {
     const finalRole: 'customer' | 'reseller' | 'admin' = (email === 'miraishop47@gmail.com') ? 'admin' : role;
 
     // Save user role profile to Firestore
-    await setDoc(doc(db, 'usuarios', firebaseUser.uid), {
-      id: firebaseUser.uid,
-      name,
-      email,
-      role: finalRole,
-    });
+    try {
+      await setDoc(doc(db, 'usuarios', firebaseUser.uid), {
+        id: firebaseUser.uid,
+        name,
+        email,
+        role: finalRole,
+      });
+    } catch (error) {
+      console.error("Firestore permission error when saving user profile:", error);
+    }
 
     return {
       id: firebaseUser.uid,
