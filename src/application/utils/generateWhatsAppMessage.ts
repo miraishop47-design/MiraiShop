@@ -1,6 +1,6 @@
 import { CartItem } from '../../domain/entities/CartItem';
 
-const STORE_PHONE = '573016996522';
+export const STORE_PHONE = '573016996522';
 
 const formatCOP = (value: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value);
@@ -13,7 +13,7 @@ export function generateWhatsAppMessage(
   total: number,
   isReseller?: boolean
 ): string {
-  const header = `Hola Mirai Shop 👋\n\nHe registrado el pedido Nro: #${orderId}\n\nDetalle del pedido:\n`;
+  const header = `Hola Mirai Shop \n\nHe registrado el pedido Nro: #${orderId}\n\nDetalle del pedido:\n`;
   
   const itemsList = items
     .map(item => {

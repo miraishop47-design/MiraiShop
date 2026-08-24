@@ -9,6 +9,9 @@ export class CreateProductUseCase {
     if (!product.nombre || isStockInvalid) {
       throw new Error('Datos del producto inválidos. Nombre y stock son requeridos.');
     }
+    if (product.precioCliente === undefined || product.precioCliente <= 0) {
+      throw new Error('El precio minorista debe ser mayor a cero.');
+    }
     if (product.isPackageSale) {
       if (product.packageOptions && product.packageOptions.length > 0) {
         const seenUnits = new Set<number>();

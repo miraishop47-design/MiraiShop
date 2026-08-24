@@ -2,12 +2,14 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 
 export default function CartSidebar() {
   const { cart, isCartOpen, setIsCartOpen, updateQuantity, removeFromCart, clearCart, cartTotal } = useCart();
   const { user } = useAuth();
+  const pathname = usePathname();
 
   const isReseller = user?.role === 'reseller' || user?.role === 'admin';
   const showPrice = !!user;
@@ -15,17 +17,25 @@ export default function CartSidebar() {
   const formatCOP = (value: number) =>
     new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value);
 
+  // En /cart la página ya muestra el carrito completo: el panel lateral
+  // solo estorbaría tapándola.
+  if (pathname === '/cart') return null;
+
   return (
-    <div className={`fixed inset-0 z-50 overflow-hidden transition-all duration-300 ${isCartOpen ? 'visible pointer-events-auto' : 'invisible pointer-events-none'}`}>
+    <div className={`fixed inset-0 z-[110] overflow-hidden transition-all duration-300 ${isCartOpen ? 'visible pointer-events-auto' : 'invisible pointer-events-none'}`}>
       {/* Backdrop */}
       <div
         className={`absolute inset-0 bg-black/60 transition-opacity duration-300 ${isCartOpen ? 'opacity-100 backdrop-blur-sm' : 'opacity-0 backdrop-blur-none'}`}
         onClick={() => setIsCartOpen(false)}
       />
 
-      <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
+      {/* El contenedor define el ancho; el panel ocupa lo que queda tras el
+          pl-10, que es la franja para cerrar tocando fuera. Antes el panel
+          usaba w-screen (100vw) dentro de un padre con padding, así que en
+          móvil se salía 40px por la derecha y recortaba la X y los botones. */}
+      <div className="absolute inset-y-0 right-0 w-full max-w-md flex pl-10">
         {/* Drawer Panel */}
-        <div className={`w-screen max-w-md bg-white dark:bg-gray-900 shadow-2xl flex flex-col border-l border-gray-200/50 dark:border-gray-800/50 transform transition-transform duration-300 ease-in-out ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className={`w-full bg-white dark:bg-gray-900 shadow-2xl flex flex-col border-l border-gray-200/50 dark:border-gray-800/50 transform transition-transform duration-300 ease-in-out ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
           {/* Header */}
           <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800/60 flex items-center justify-between">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">

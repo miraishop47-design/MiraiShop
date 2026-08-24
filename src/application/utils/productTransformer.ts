@@ -78,10 +78,11 @@ export function transformProductForUser(product: Product, role?: 'customer' | 'r
   const resolvedCategory = normalizeCategory(product.categoria);
 
   if (!isReseller) {
+    // Minorista (o visitante): ve el precio de cliente, nunca el mayorista.
     return {
       id: product.id,
       nombre: product.nombre,
-      precio: 0,
+      precio: product.precioCliente || 0,
       stock: product.stock,
       descripcion: product.descripcion,
       categoria: resolvedCategory,
@@ -91,7 +92,11 @@ export function transformProductForUser(product: Product, role?: 'customer' | 'r
       isPackageSale: product.isPackageSale,
       unitsPerPackage: product.unitsPerPackage,
       availablePackages: product.availablePackages,
-      packageOptions: product.packageOptions,
+      // Se conserva la estructura de paquetes (stock, unidades) pero sin
+      // los precios de mayorista.
+      packageOptions: product.packageOptions
+        ? product.packageOptions.map((opt) => ({ ...opt, wholesalePrice: 0 }))
+        : undefined,
       isMadeToOrder: product.isMadeToOrder,
     };
   }

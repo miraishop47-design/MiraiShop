@@ -56,6 +56,18 @@ export default function CartPage() {
       return;
     }
 
+    // La pestaña se abre AHORA, dentro del gesto del usuario.
+    // Los navegadores móviles (Safari iOS sobre todo) solo permiten abrir
+    // ventanas mientras se procesa el clic; después de un `await` ese permiso
+    // ya caducó y window.open queda bloqueado en silencio. Por eso se abre
+    // vacía primero y más abajo se le asigna la URL de WhatsApp.
+    let waWindow: Window | null = null;
+    try {
+      waWindow = window.open('', '_blank');
+    } catch {
+      waWindow = null;
+    }
+
     try {
       setIsCheckingOut(true);
 
@@ -103,9 +115,18 @@ export default function CartPage() {
       );
 
       clearCart();
-      window.open(whatsappUrl, '_blank');
+
+      if (waWindow && !waWindow.closed) {
+        // Caso normal: reutilizamos la pestaña que ya habíamos abierto.
+        waWindow.location.href = whatsappUrl;
+      } else {
+        // El navegador bloqueó la pestaña nueva: navegamos en la actual.
+        // En móvil esto abre igual la app de WhatsApp.
+        window.location.href = whatsappUrl;
+      }
     } catch (err: any) {
       console.error('Error creating order:', err);
+      if (waWindow && !waWindow.closed) waWindow.close();
       alert(`Ocurrió un error al procesar tu pedido: ${err.message || err}`);
     } finally {
       setIsCheckingOut(false);

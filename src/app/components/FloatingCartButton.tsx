@@ -4,8 +4,12 @@ import React, { useEffect, useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { usePathname } from 'next/navigation';
 
+// Rutas donde el botón flotante estorba: la página del carrito ya muestra
+// todo, y en login/registro compite con el botón principal del formulario.
+const HIDDEN_ROUTES = ['/cart', '/auth/login', '/auth/register'];
+
 export default function FloatingCartButton() {
-  const { cartItemsCount, setIsCartOpen } = useCart();
+  const { cartItemsCount, setIsCartOpen, isCartOpen } = useCart();
   const [isVisible, setIsVisible] = useState(false);
   const pathname = usePathname();
 
@@ -25,8 +29,10 @@ export default function FloatingCartButton() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Hide on the cart page itself
-  if (pathname === '/cart') return null;
+  // Ocultar en el carrito y en las pantallas de autenticación
+  if (HIDDEN_ROUTES.some((route) => pathname?.startsWith(route))) return null;
+  // Y mientras el panel lateral está abierto: taparía sus propios botones
+  if (isCartOpen) return null;
   if (!isVisible) return null;
 
   return (

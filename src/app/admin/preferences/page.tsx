@@ -3,11 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
+import { isAdminUser } from '../../../application/utils/roles';
 import { getPreferenceStats, PreferenceStats } from '../../../application/services/preferenceService';
 import { getAllUsers, updateUserRole, deleteUserRecord } from '../../../application/services/userService';
 import { User } from '../../../domain/entities/User';
-
-const ADMIN_EMAILS = ['miraishop47@gmail.com', 'ariaacris73@gmail.com'];
 
 // ─── Colour palettes for categories ──────────────────────────────────────────
 const PALETTE = [
@@ -86,14 +85,14 @@ export default function AdminPreferencesPage() {
 
   // Auth guard
   useEffect(() => {
-    if (!loading && (!user || !ADMIN_EMAILS.includes(user.email))) {
+    if (!loading && (!user || !isAdminUser(user))) {
       router.replace('/');
     }
   }, [user, loading, router]);
 
   // Load stats directly from the service (client-side, same security model as admin/page.tsx)
   useEffect(() => {
-    if (!user || !ADMIN_EMAILS.includes(user.email)) return;
+    if (!user || !isAdminUser(user)) return;
     const load = async () => {
       try {
         const data = await getPreferenceStats();
@@ -110,7 +109,7 @@ export default function AdminPreferencesPage() {
 
   // Load users for management
   useEffect(() => {
-    if (!user || !ADMIN_EMAILS.includes(user.email)) return;
+    if (!user || !isAdminUser(user)) return;
     const loadUsers = async () => {
       try {
         const data = await getAllUsers();

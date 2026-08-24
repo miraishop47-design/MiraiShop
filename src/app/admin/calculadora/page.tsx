@@ -252,7 +252,7 @@ export default function CalculadoraPage() {
 
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 p-8">
           
-          {/* Columna Izquierda: Formulario */}
+          {/* Columna Izquierda: Formulario */} 
           <section className="xl:col-span-7">
             
             {/* Datos de la Factura y Cliente */}

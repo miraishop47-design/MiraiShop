@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
+import { isAdminUser } from '../../application/utils/roles';
 import { useCart } from '../context/CartContext';
 import { useFavorite } from '../context/FavoriteContext';
 import { useState, useEffect } from 'react';
@@ -12,14 +13,21 @@ export default function Navbar() {
   const { favorites } = useFavorite();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Close mobile menu if route changes (optional cleanup)
+  // Cerrar el menú al pasar a escritorio
   useEffect(() => {
     const handleResize = () => { if (window.innerWidth >= 640) setIsMobileMenuOpen(false); };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Evitar que la página de atrás siga haciendo scroll con el menú abierto
+  useEffect(() => {
+    document.body.style.overflow = isMobileMenuOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isMobileMenuOpen]);
+
   return (
+    <>
     <nav className="print:hidden fixed w-full z-50 top-0 bg-white/70 dark:bg-gray-950/70 backdrop-blur-lg border-b border-gray-200/50 dark:border-gray-800/50 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
@@ -32,7 +40,7 @@ export default function Navbar() {
               <Link href="/productos" className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                 Productos
               </Link>
-              {user && (user.email === 'miraishop47@gmail.com' || user.email === 'miraishop47@gmail.com') && (
+              {user && isAdminUser(user) && (
                 <Link href="/admin" className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                   Administrar
                 </Link>
@@ -109,76 +117,96 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Drawer Overlay */}
-      {isMobileMenuOpen && (
-        <div className="sm:hidden fixed inset-0 z-[100] flex justify-end">
-          <div 
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" 
-            onClick={() => setIsMobileMenuOpen(false)}
-          ></div>
-          <div className="relative w-4/5 max-w-sm h-full bg-white dark:bg-gray-950 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-gray-200/50 dark:border-gray-800/50">
-            <div className="p-5 flex justify-between items-center border-b border-gray-100 dark:border-gray-900">
-              <span className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
-                MiraiShop
-              </span>
-              <button 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-              </button>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto py-6 px-4 space-y-6">
-              {user && (
-                <div className="px-4 py-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl mb-6">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider mb-1">Conectado como</p>
-                  <p className="text-base font-black text-indigo-700 dark:text-indigo-400 truncate">{user.name}</p>
-                </div>
-              )}
-              
-              <nav className="space-y-2">
-                <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center px-4 py-3.5 text-lg font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-xl transition-colors">
-                  Inicio
-                </Link>
-                <Link href="/productos" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center px-4 py-3.5 text-lg font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-xl transition-colors">
-                  Catálogo de Productos
-                </Link>
-                {user && (
-                  <Link href="/favoritos" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center px-4 py-3.5 text-lg font-bold text-pink-600 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-900/30 rounded-xl transition-colors">
-                    Mis Favoritos
-                  </Link>
-                )}
-                {user && (user.email === 'miraishop47@gmail.com' || user.email === 'miraishop47@gmail.com') && (
-                  <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center px-4 py-3.5 text-lg font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl transition-colors">
-                    Panel de Administración
-                  </Link>
-                )}
-              </nav>
-            </div>
+    </nav>
 
-            <div className="p-6 border-t border-gray-100 dark:border-gray-900">
-              {user ? (
-                <button
-                  onClick={() => { logout(); setIsMobileMenuOpen(false); }}
-                  className="w-full py-4 text-center text-red-600 dark:text-red-400 font-bold bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-xl transition-colors"
-                >
-                  Cerrar Sesión
-                </button>
-              ) : (
-                <div className="space-y-3">
-                  <Link href="/auth/login" onClick={() => setIsMobileMenuOpen(false)} className="block w-full py-3.5 text-center text-gray-700 dark:text-gray-300 font-bold bg-gray-100 dark:bg-gray-800 rounded-xl transition-colors">
-                    Iniciar Sesión
-                  </Link>
-                  <Link href="/auth/register" onClick={() => setIsMobileMenuOpen(false)} className="block w-full py-3.5 text-center text-white font-bold bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/25">
-                    Crear Cuenta
-                  </Link>
-                </div>
+      {/* Menú móvil.
+          Va FUERA del <nav> a propósito: el nav usa backdrop-blur, y un
+          elemento con backdrop-filter se convierte en el bloque contenedor
+          de sus hijos `fixed`. Dentro del nav, este panel se posicionaba
+          respecto a la barra de 64px en vez de la ventana, y por eso se veía
+          desarmado. Como hermano del nav, `fixed inset-0` vuelve a medirse
+          contra el viewport. */}
+      <div
+        className={`sm:hidden fixed inset-0 z-[100] transition-all duration-300 ${
+          isMobileMenuOpen ? 'visible pointer-events-auto' : 'invisible pointer-events-none'
+        }`}
+      >
+        {/* Fondo oscuro */}
+        <div
+          className={`absolute inset-0 bg-black/60 transition-opacity duration-300 ${
+            isMobileMenuOpen ? 'opacity-100 backdrop-blur-sm' : 'opacity-0'
+          }`}
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+
+        {/* Panel deslizante */}
+        <div
+          className={`absolute inset-y-0 right-0 w-4/5 max-w-sm bg-white dark:bg-gray-950 shadow-2xl flex flex-col border-l border-gray-200/50 dark:border-gray-800/50 transform transition-transform duration-300 ease-in-out ${
+            isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+          <div className="p-5 flex justify-between items-center border-b border-gray-100 dark:border-gray-900 flex-shrink-0">
+            <span className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
+              MiraiShop
+            </span>
+            <button
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full"
+              aria-label="Cerrar menú"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+          </div>
+
+          <div className="flex-1 min-h-0 overflow-y-auto py-6 px-4">
+            {user && (
+              <div className="px-4 py-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl mb-6">
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider mb-1">Conectado como</p>
+                <p className="text-base font-black text-indigo-700 dark:text-indigo-400 truncate">{user.name}</p>
+              </div>
+            )}
+
+            <nav className="space-y-2">
+              <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center px-4 py-3.5 text-lg font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-xl transition-colors">
+                Inicio
+              </Link>
+              <Link href="/productos" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center px-4 py-3.5 text-lg font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-xl transition-colors">
+                Catálogo de Productos
+              </Link>
+              {user && (
+                <Link href="/favoritos" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center px-4 py-3.5 text-lg font-bold text-pink-600 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-900/30 rounded-xl transition-colors">
+                  Mis Favoritos
+                </Link>
               )}
-            </div>
+              {user && isAdminUser(user) && (
+                <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center px-4 py-3.5 text-lg font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl transition-colors">
+                  Panel de Administración
+                </Link>
+              )}
+            </nav>
+          </div>
+
+          <div className="p-6 border-t border-gray-100 dark:border-gray-900 flex-shrink-0">
+            {user ? (
+              <button
+                onClick={() => { logout(); setIsMobileMenuOpen(false); }}
+                className="w-full py-4 text-center text-red-600 dark:text-red-400 font-bold bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-xl transition-colors"
+              >
+                Cerrar Sesión
+              </button>
+            ) : (
+              <div className="space-y-3">
+                <Link href="/auth/login" onClick={() => setIsMobileMenuOpen(false)} className="block w-full py-3.5 text-center text-gray-700 dark:text-gray-300 font-bold bg-gray-100 dark:bg-gray-800 rounded-xl transition-colors">
+                  Iniciar Sesión
+                </Link>
+                <Link href="/auth/register" onClick={() => setIsMobileMenuOpen(false)} className="block w-full py-3.5 text-center text-white font-bold bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/25">
+                  Crear Cuenta
+                </Link>
+              </div>
+            )}
           </div>
         </div>
-      )}
-    </nav>
+      </div>
+    </>
   );
 }

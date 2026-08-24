@@ -104,22 +104,20 @@ export class FirebaseProductRepositoryImpl implements ProductRepository {
     }
   }
 
+  /**
+   * El filtrado de precios por rol NO se hace aquí.
+   *
+   * Antes este método leía localStorage('user_role') para recortar precios,
+   * pero ese valor se escribe recién cuando AuthContext termina de resolver
+   * la sesión contra Firestore, y para entonces getAll()/subscribeToAll() ya
+   * habían entregado los productos recortados. El snapshot no se vuelve a
+   * emitir, así que los precios quedaban en cero hasta recargar la página.
+   *
+   * Quién ve qué precio se decide ahora en transformProductForUser(), que
+   * recibe el rol de React y por lo tanto se recalcula solo cuando la sesión
+   * cambia. Este método queda como paso a través para no tocar los llamadores.
+   */
   private sanitizeProductForRole(product: Product): Product {
-    if (typeof window === 'undefined') return product;
-    const role = localStorage.getItem('user_role');
-    const isReseller = role === 'reseller' || role === 'admin';
-    if (!isReseller) {
-      return {
-        ...product,
-        precioCliente: undefined,
-        precioMayorista: 0,
-        precioPaquete: undefined,
-        packageOptions: product.packageOptions ? product.packageOptions.map(opt => ({
-          ...opt,
-          wholesalePrice: 0
-        })) : undefined
-      };
-    }
     return product;
   }
 

@@ -62,7 +62,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             {product.categoria}
           </span>
           
-          {isPack && (
+          {isPack && isReseller && (
             <span className="bg-pink-600/95 text-white text-[10px] font-black px-3.5 py-1.5 rounded-full border border-pink-500/30 uppercase tracking-wider pointer-events-none">
               {options.length === 1 
                 ? `Caja x${options[0].unitsPerPackage} und.` 
@@ -157,17 +157,31 @@ export default function ProductCard({ product }: ProductCardProps) {
             ) : (
               <>
                 <div className="flex flex-col">
-                  
-                  <span className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 leading-tight">
-                    Precios por cotización
-                  </span>
+                  {showPrice && product.precio > 0 ? (
+                    <>
+                      <span className="text-[10px] sm:text-xs text-gray-400 font-bold uppercase tracking-wider mb-0.5">
+                        Precio
+                      </span>
+                      <span className="text-lg sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
+                        {formatCOP(product.precio)}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 leading-tight">
+                      Precios por cotización
+                    </span>
+                  )}
                 </div>
                 <div className="text-right">
                   <span className="hidden sm:block text-xs text-gray-400 font-bold uppercase tracking-wider mb-0.5">Disponibilidad</span>
                   <span className={`text-[10px] sm:text-sm font-black ${isOutOfStock ? 'text-red-500' : 'text-emerald-500'}`}>
                     {isMadeToOrder 
                       ? 'Bajo pedido' 
-                      : isOutOfStock ? 'Agotado' : `${product.stock} disp.`}
+                      : isOutOfStock 
+                        ? 'Agotado' 
+                        : isPack 
+                          ? 'Disponible' 
+                          : `${product.stock} disp.`}
                   </span>
                 </div>
               </>

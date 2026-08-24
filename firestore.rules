@@ -1,0 +1,105 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─────────────────────────────────────────────────────────────
+    // Helpers
+    // ─────────────────────────────────────────────────────────────
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Admins "de arranque": los correos quemados en el código.
+    // Evita el problema del huevo y la gallina cuando todavía no
+    // existe el documento usuarios/{uid} con role = 'admin'.
+    function isAdminEmail() {
+      return isSignedIn() && request.auth.token.email in [
+        'ariaacris73@gmail.com',
+        'miraishop47@gmail.com'
+      ];
+    }
+
+    // Admin por rol persistido en Firestore.
+    function hasAdminRole() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isAdmin() {
+      return isAdminEmail() || hasAdminRole();
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // productos — catálogo público, escritura solo admin
+    // ─────────────────────────────────────────────────────────────
+    match /productos/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // usuarios — cada quien ve lo suyo; el admin ve y gestiona todo
+    // ─────────────────────────────────────────────────────────────
+    match /usuarios/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+
+      allow create: if isOwner(userId) || isAdmin();
+
+      // Un usuario puede editar su propio documento, pero NO puede
+      // cambiarse el campo 'role' (evita auto-escalar a admin).
+      allow update: if isAdmin()
+        || (isOwner(userId)
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
+        || (isAdminEmail() && isOwner(userId));
+
+      allow delete: if isAdmin();
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // userPreferences — doc por usuario (docId == uid)
+    // ─────────────────────────────────────────────────────────────
+    match /userPreferences/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create, update: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // favorites — doc por usuario (docId == uid)
+    // ─────────────────────────────────────────────────────────────
+    match /favorites/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create, update, delete: if isOwner(userId) || isAdmin();
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // orders
+    // NOTA: hoy la app consulta la colección completa sin filtrar por
+    // usuario, por eso 'list' está abierto a cualquier sesión iniciada.
+    // Cuando filtres por userId, cámbialo a:
+    //   allow list: if isAdmin()
+    //     || (isSignedIn() && request.query.limit <= 100);
+    // y aplica un where('userId','==',request.auth.uid) en el cliente.
+    // ─────────────────────────────────────────────────────────────
+    match /orders/{orderId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    // Todo lo demás queda bloqueado.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

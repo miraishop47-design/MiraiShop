@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../../context/AuthContext';
+import { isAdminUser } from '../../../application/utils/roles';
 import { orderService } from '../../../application/services/orderService';
 import { Order, OrderStatus } from '../../../domain/entities/Order';
 import OrderCard from '../../components/OrderCard';
@@ -32,7 +33,7 @@ export default function AdminOrdersPage() {
     if (!loading) {
       if (!user) {
         router.push('/auth/login');
-      } else if (user.email !== 'miraishop47@gmail.com' && user.email !== 'miraishop47@gmail.com') {
+      } else if (!isAdminUser(user)) {
         router.push('/');
       }
     }
@@ -40,7 +41,7 @@ export default function AdminOrdersPage() {
 
   // Subscribe to Firestore Orders in Real-Time
   useEffect(() => {
-    if (!user || (user.email !== 'miraishop47@gmail.com' && user.email !== 'miraishop47@gmail.com')) return;
+    if (!user || !isAdminUser(user)) return;
 
     try {
       const unsubscribe = orderService.subscribeOrders((updatedOrders) => {
@@ -96,7 +97,7 @@ export default function AdminOrdersPage() {
     .filter(o => ['confirmado', 'enviado', 'entregado'].includes(o.status))
     .reduce((sum, o) => sum + o.total, 0);
 
-  if (loading || !user || (user.email !== 'miraishop47@gmail.com' && user.email !== 'miraishop47@gmail.com')) {
+  if (loading || !user || !isAdminUser(user)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50/50 dark:bg-gray-955/50">
         <div className="text-center space-y-4">

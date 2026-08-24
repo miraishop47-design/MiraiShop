@@ -75,7 +75,7 @@ export default function ProductFilters({
               }
             }}
             placeholder="¿Qué estás buscando?"
-            className="w-full pl-12 pr-10 py-3.5 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm focus:border-indigo-500/80 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all duration-300 text-gray-800 dark:text-gray-150 placeholder-gray-400 dark:placeholder-gray-500 text-sm font-medium"
+            className="w-full pl-12 pr-10 py-3.5 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm focus:border-indigo-500/80 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all duration-300 text-white placeholder-gray-400 dark:placeholder-gray-500 text-sm font-medium"
           />
           {search && (
             <button

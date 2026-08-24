@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
+import { isAdminUser } from '../../application/utils/roles';
 import { productService } from '../../application/services/productService';
 import { Product, PackageOption } from '../../domain/entities/Product';
 import CustomCategorySelect from '../components/CustomCategorySelect';
@@ -33,6 +34,7 @@ export default function AdminPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     nombre: '',
+    precioCliente: '',
     stock: '',
     categoria: CATEGORIES[0],
     descripcion: '',
@@ -65,7 +67,7 @@ export default function AdminPage() {
     if (!loading) {
       if (!user) {
         router.push('/auth/login');
-      } else if (user.email !== 'miraishop47@gmail.com' && user.email !== 'miraishop47@gmail.com') {
+      } else if (!isAdminUser(user)) {
         router.push('/');
       }
     }
@@ -73,7 +75,7 @@ export default function AdminPage() {
 
   // Subscribe to Products
   useEffect(() => {
-    if (!user || (user.email !== 'miraishop47@gmail.com' && user.email !== 'miraishop47@gmail.com')) return;
+    if (!user || !isAdminUser(user)) return;
 
     try {
       const unsubscribe = productService.subscribeProducts((updatedProducts) => {
@@ -87,7 +89,7 @@ export default function AdminPage() {
     }
   }, [user]);
 
-  if (loading || !user || (user.email !== 'miraishop47@gmail.com' && user.email !== 'miraishop47@gmail.com')) {
+  if (loading || !user || !isAdminUser(user)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50/50 dark:bg-gray-955/50">
         <div className="text-center space-y-4">
@@ -145,6 +147,7 @@ export default function AdminPage() {
 
     setForm({
       nombre: product.nombre,
+      precioCliente: product.precioCliente ? String(product.precioCliente) : '',
       stock: String(product.stock),
       categoria: product.categoria,
       descripcion: product.descripcion,
@@ -174,6 +177,7 @@ export default function AdminPage() {
     setEditingId(null);
     setForm({
       nombre: '',
+      precioCliente: '',
       stock: '',
       categoria: CATEGORIES[0],
       descripcion: '',
@@ -294,9 +298,16 @@ export default function AdminPage() {
     setFormSuccess(null);
 
     const stockNum = form.isMadeToOrder ? 0 : Number(form.stock);
+    const precioClienteNum = Number(form.precioCliente);
 
     if (!form.nombre || (!form.isMadeToOrder && stockNum < 0)) {
       setFormError(form.isMadeToOrder ? 'El nombre del producto es obligatorio.' : 'Nombre y stock válido son obligatorios.');
+      setFormSubmitting(false);
+      return;
+    }
+
+    if (!form.precioCliente || isNaN(precioClienteNum) || precioClienteNum <= 0) {
+      setFormError('El precio minorista es obligatorio y debe ser mayor a cero.');
       setFormSubmitting(false);
       return;
     }
@@ -340,6 +351,7 @@ export default function AdminPage() {
     try {
       const productData = {
         nombre: form.nombre,
+        precioCliente: precioClienteNum,
         stock: stockNum,
         categoria: form.categoria,
         descripcion: form.descripcion,
@@ -366,6 +378,7 @@ export default function AdminPage() {
       // Reset form
       setForm({
         nombre: '',
+        precioCliente: '',
         stock: '',
         categoria: CATEGORIES[0],
         descripcion: '',
@@ -447,10 +460,13 @@ export default function AdminPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
         {/* Left Column: Form */}
         <div className="lg:col-span-1">
-          <div className="bg-white dark:bg-gray-900 p-8 rounded-3xl border border-gray-200/50 dark:border-gray-800/50 shadow-md sticky top-24">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
+          <div className="bg-white dark:bg-gray-900 p-8 rounded-3xl border border-gray-200/50 dark:border-gray-800/50 shadow-md sticky top-24 flex flex-col lg:h-[calc(100vh-8rem)]">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex-shrink-0">
               {editingId ? 'Editar Producto' : 'Crear Nuevo Producto'}
             </h2>
+
+            {/* Zona con scroll propio: el título de arriba se queda fijo */}
+            <div className="flex-1 min-h-0 lg:overflow-y-auto lg:pr-3">
 
             {formSuccess && (
               <div className="mb-6 p-4 bg-emerald-100/50 dark:bg-emerald-900/30 border border-emerald-500/50 rounded-2xl text-emerald-600 dark:text-emerald-400 text-sm font-medium text-center">
@@ -476,6 +492,26 @@ export default function AdminPage() {
                   placeholder="Ej. Soporte Auriculares Gamer"
                   className="w-full px-4 py-3 bg-gray-50/50 dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 dark:text-white outline-none transition-all font-medium"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 ml-1">
+                  Precio Minorista <span className="text-pink-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  name="precioCliente"
+                  value={form.precioCliente}
+                  onChange={handleChange}
+                  required
+                  min="1"
+                  step="any"
+                  placeholder="30000"
+                  className="w-full px-4 py-3 bg-gray-50/50 dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all font-medium text-gray-900 dark:text-white"
+                />
+                <p className="text-[10px] text-gray-400 mt-1 font-light ml-1">
+                  Precio por unidad para clientes minoristas. Los mayoristas nunca lo ven; ellos ven el precio por caja.
+                </p>
               </div>
 
                            <div className="grid grid-cols-2 gap-4">
@@ -727,15 +763,19 @@ export default function AdminPage() {
                 )}
               </div>
             </form>
+            </div>
           </div>
         </div>
 
         {/* Right Column: Listing */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white dark:bg-gray-900 p-8 rounded-3xl border border-gray-200/50 dark:border-gray-800/50 shadow-md">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
+          <div className="bg-white dark:bg-gray-900 p-8 rounded-3xl border border-gray-200/50 dark:border-gray-800/50 shadow-md flex flex-col lg:sticky lg:top-24 lg:h-[calc(100vh-8rem)]">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex-shrink-0">
               Inventario de Productos ({products.length})
             </h2>
+
+            {/* Zona con scroll propio */}
+            <div className="flex-1 min-h-0 lg:overflow-y-auto lg:pr-3">
 
             {productsLoading && (
               <div className="space-y-4">
@@ -783,6 +823,11 @@ export default function AdminPage() {
                         </div>
                         <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-xs text-gray-400">
                           <span className="font-semibold text-indigo-500">{product.categoria}</span>
+                          {product.precioCliente ? (
+                            <span className="font-medium text-emerald-600 dark:text-emerald-400">P. Minorista: {formatCOP(product.precioCliente)}</span>
+                          ) : (
+                            <span className="font-medium text-amber-500">Sin precio minorista</span>
+                          )}
                           {product.precioMayorista ? (
                             <>
                               <span>•</span>
@@ -841,6 +886,7 @@ export default function AdminPage() {
                 ))}
               </div>
             )}
+            </div>
           </div>
         </div>
       </div>
