@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 
 const SLIDES = [
@@ -55,10 +56,13 @@ export default function HeroCarousel() {
           <div key={slide.id} className="min-w-full w-full h-full relative flex-shrink-0">
             {/* Background Image with Zoom Effect */}
             <div className="absolute inset-0 w-full h-full overflow-hidden">
-              <img 
-                src={slide.image} 
+              <Image
+                src={slide.image}
                 alt={slide.title}
-                className={`w-full h-full object-cover transition-transform duration-[10000ms] ease-out ${currentSlide === idx ? 'scale-110' : 'scale-100'}`}
+                fill
+                sizes="100vw"
+                priority={idx === 0}
+                className={`object-cover transition-transform duration-[10000ms] ease-out ${currentSlide === idx ? 'scale-110' : 'scale-100'}`}
               />
             </div>
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
-import { isAdminUser } from '../../../application/utils/roles';
+import { isAdminUser, isSuperAdminEmail } from '../../../application/utils/roles';
 import { getPreferenceStats, PreferenceStats } from '../../../application/services/preferenceService';
 import { getAllUsers, updateUserRole, deleteUserRecord } from '../../../application/services/userService';
 import { User } from '../../../domain/entities/User';
@@ -123,24 +123,24 @@ export default function AdminPreferencesPage() {
     loadUsers();
   }, [user]);
 
-  const handleRoleChange = async (userId: string, newRole: 'admin' | 'customer' | 'reseller') => {
+  const handleRoleChange = async (userId: string, newRole: 'admin' | 'customer' | 'reseller', userEmail?: string) => {
     if (!confirm(`¿Estás seguro de cambiar el rol a ${newRole}?`)) return;
     try {
-      await updateUserRole(userId, newRole);
+      await updateUserRole(userId, newRole, userEmail);
       setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
       alert(`Rol actualizado exitosamente a ${newRole}`);
     } catch (e) {
-      alert('Error actualizando rol');
+      alert(e instanceof Error ? e.message : 'Error actualizando rol');
     }
   };
 
-  const handleDeleteUser = async (userId: string) => {
+  const handleDeleteUser = async (userId: string, userEmail?: string) => {
     if (!confirm('¿Estás seguro de que deseas eliminar a este usuario de la base de datos? Perderá sus roles y permisos permanentemente.')) return;
     try {
-      await deleteUserRecord(userId);
+      await deleteUserRecord(userId, userEmail);
       setUsers(users.filter(u => u.id !== userId));
     } catch (e) {
-      alert('Error eliminando usuario');
+      alert(e instanceof Error ? e.message : 'Error eliminando usuario');
     }
   };
 
@@ -365,40 +365,51 @@ export default function AdminPreferencesPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {users.map(u => (
-                    <tr key={u.id} className="text-sm hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                      <td className="py-4 px-4 font-semibold text-gray-900 dark:text-gray-100">
-                        {u.name}
-                      </td>
-                      <td className="py-4 px-4 text-gray-600 dark:text-gray-400">
-                        {u.email}
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <select 
-                          value={u.role}
-                          onChange={(e) => handleRoleChange(u.id, e.target.value as any)}
-                          className={`
-                            px-3 py-1.5 rounded-lg text-xs font-bold border-none outline-none appearance-none cursor-pointer text-center
-                            ${u.role === 'admin' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400' : 
-                              u.role === 'reseller' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400' : 
-                              'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'}
-                          `}
-                        >
-                          <option value="customer">Customer</option>
-                          <option value="reseller">Reseller</option>
-                          <option value="admin">Admin</option>
-                        </select>
-                      </td>
-                      <td className="py-4 px-4 text-right">
-                        <button 
-                          onClick={() => handleDeleteUser(u.id)}
-                          className="px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 dark:text-red-400 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-lg transition-colors"
-                        >
-                          Eliminar
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {users.map(u => {
+                    const isSuperAdmin = isSuperAdminEmail(u.email);
+                    return (
+                      <tr key={u.id} className="text-sm hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                        <td className="py-4 px-4 font-semibold text-gray-900 dark:text-gray-100">
+                          {u.name}
+                        </td>
+                        <td className="py-4 px-4 text-gray-600 dark:text-gray-400">
+                          {u.email}
+                        </td>
+                        <td className="py-4 px-4 text-center">
+                          {isSuperAdmin ? (
+                            <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">
+                              🛡️ Superadmin
+                            </span>
+                          ) : (
+                            <select
+                              value={u.role}
+                              onChange={(e) => handleRoleChange(u.id, e.target.value as any, u.email)}
+                              className={`
+                                px-3 py-1.5 rounded-lg text-xs font-bold border-none outline-none appearance-none cursor-pointer text-center
+                                ${u.role === 'admin' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400' :
+                                  u.role === 'reseller' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400' :
+                                  'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'}
+                              `}
+                            >
+                              <option value="customer">Customer</option>
+                              <option value="reseller">Reseller</option>
+                              <option value="admin">Admin</option>
+                            </select>
+                          )}
+                        </td>
+                        <td className="py-4 px-4 text-right">
+                          {!isSuperAdmin && (
+                            <button
+                              onClick={() => handleDeleteUser(u.id, u.email)}
+                              className="px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 dark:text-red-400 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-lg transition-colors"
+                            >
+                              Eliminar
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

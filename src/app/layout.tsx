@@ -8,6 +8,7 @@ import { FavoriteProvider } from "./context/FavoriteContext";
 import CartSidebar from "./components/CartSidebar";
 import FloatingCartButton from "./components/FloatingCartButton";
 import WhatsAppContactButton from "./components/WhatsAppContactButton";
+import PrizeRoulette from "./components/PrizeRoulette";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -58,6 +59,7 @@ export default function RootLayout({
               <CartSidebar />
               <FloatingCartButton />
               <WhatsAppContactButton />
+              <PrizeRoulette />
               <main className="min-h-screen pt-16">
                 {children}
               </main>

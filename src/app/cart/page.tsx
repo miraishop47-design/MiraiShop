@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -177,9 +178,8 @@ export default function CartPage() {
                 <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-5 first:pt-0 last:pb-0">
                   <div className="flex items-center gap-4">
                     {/* Item Thumbnail */}
-                    <div className="w-20 h-20 bg-gray-50 dark:bg-gray-955 rounded-2xl overflow-hidden flex-shrink-0 border border-gray-200/20">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={item.imagen} alt={item.nombre} className="w-full h-full object-cover" />
+                    <div className="relative w-20 h-20 bg-gray-50 dark:bg-gray-955 rounded-2xl overflow-hidden flex-shrink-0 border border-gray-200/20">
+                      <Image src={item.imagen} alt={item.nombre} fill sizes="80px" className="object-cover" />
                     </div>
                     <div>
                       <h4 className="font-bold text-base text-gray-900 dark:text-white leading-tight">{item.nombre}</h4>
@@ -193,7 +193,11 @@ export default function CartPage() {
                       ) : (
                         <>
                           {showPrice && item.precio > 0 && <p className="text-xs text-indigo-500 font-semibold mt-1">Precio unitario: {formatCOP(item.precio)}</p>}
-                          <p className="text-[11px] text-gray-400 mt-0.5">Stock disponible: {item.stock} unidades</p>
+                          {item.isMadeToOrder ? (
+                            <p className="text-[11px] text-emerald-500 font-semibold mt-0.5">🛠️ Se fabrica al confirmar tu pedido</p>
+                          ) : (
+                            <p className="text-[11px] text-gray-400 mt-0.5">Stock disponible: {item.stock} unidades</p>
+                          )}
                         </>
                       )}
                     </div>
@@ -290,7 +294,7 @@ export default function CartPage() {
               <div className="flex justify-between font-black text-gray-900 dark:text-white text-lg pt-3 border-t border-gray-100 dark:border-gray-800">
                 <span>Total</span>
                 <span className="text-indigo-600 dark:text-indigo-400">
-                  {showPrice && cartTotal > 0 ? formatCOP(cartTotal) : 'A convenir'}
+                  {!showPrice ? 'Inicia sesión para ver precio' : cartTotal > 0 ? formatCOP(cartTotal) : 'A convenir'}
                 </span>
               </div>
             </div>

@@ -54,7 +54,7 @@ export default function ProductFilters({
   const hasActiveFilters = search !== '' || category !== '';
 
   return (
-    <div className="w-full max-w-4xl mx-auto mb-12 px-4 relative z-20">
+    <div className="w-full max-w-5xl mx-auto mb-12 px-4 relative z-20">
       {/* Search Input and Filter Toggle Bar */}
       <div className="flex items-center gap-3">
         {/* Search Bar Container */}

@@ -1,6 +1,7 @@
 import { collection, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db, isMockFirebase } from '../../infrastructure/firebase/firebaseConfig';
 import { User } from '../../domain/entities/User';
+import { isSuperAdminEmail } from '../utils/roles';
 
 export async function getAllUsers(): Promise<User[]> {
   if (isMockFirebase) {
@@ -21,7 +22,11 @@ export async function getAllUsers(): Promise<User[]> {
   return users;
 }
 
-export async function updateUserRole(userId: string, newRole: 'admin' | 'customer' | 'reseller'): Promise<void> {
+export async function updateUserRole(userId: string, newRole: 'admin' | 'customer' | 'reseller', userEmail?: string): Promise<void> {
+  if (isSuperAdminEmail(userEmail)) {
+    throw new Error('La cuenta superadmin no puede perder el rol de administrador.');
+  }
+
   if (isMockFirebase) {
     const mockUsers = JSON.parse(localStorage.getItem('mock_users') || '[]');
     const updatedUsers = mockUsers.map((u: any) => u.id === userId ? { ...u, role: newRole } : u);
@@ -35,7 +40,11 @@ export async function updateUserRole(userId: string, newRole: 'admin' | 'custome
   });
 }
 
-export async function deleteUserRecord(userId: string): Promise<void> {
+export async function deleteUserRecord(userId: string, userEmail?: string): Promise<void> {
+  if (isSuperAdminEmail(userEmail)) {
+    throw new Error('La cuenta superadmin no puede ser eliminada.');
+  }
+
   if (isMockFirebase) {
     const mockUsers = JSON.parse(localStorage.getItem('mock_users') || '[]');
     const updatedUsers = mockUsers.filter((u: any) => u.id !== userId);

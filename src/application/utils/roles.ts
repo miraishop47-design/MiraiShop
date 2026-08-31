@@ -12,6 +12,17 @@ export const BOOTSTRAP_ADMIN_EMAILS = [
   'ariaacris73@gmail.com',
 ];
 
+/**
+ * Cuenta "dueña" del negocio. Es la única que no puede perder el rol admin
+ * ni ser eliminada desde /admin/preferences, sin importar quién lo intente
+ * (incluyendo otras cuentas admin).
+ */
+export const SUPER_ADMIN_EMAIL = 'miraishop47@gmail.com';
+
+export function isSuperAdminEmail(email?: string | null): boolean {
+  return !!email && email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+}
+
 type AuthLike = Pick<User, 'email' | 'role'> | null | undefined;
 
 /** Administrador: por rol guardado en Firestore o por correo bootstrap. */

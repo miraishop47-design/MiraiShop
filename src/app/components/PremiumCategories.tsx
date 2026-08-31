@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 
 const CATEGORIES = [
@@ -57,10 +58,12 @@ export default function PremiumCategories() {
           >
             {/* Background Image */}
             <div className="absolute inset-0 w-full h-full overflow-hidden">
-              <img 
-                src={cat.image} 
-                alt={cat.name} 
-                className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110 opacity-70 group-hover:opacity-100"
+              <Image
+                src={cat.image}
+                alt={cat.name}
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                className="object-cover transition-transform duration-700 ease-out group-hover:scale-110 opacity-70 group-hover:opacity-100"
               />
             </div>
 

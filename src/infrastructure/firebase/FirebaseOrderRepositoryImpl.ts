@@ -88,22 +88,25 @@ export class FirebaseOrderRepositoryImpl implements OrderRepository {
     order.total = resolvedSubtotal;
 
     if (isMockFirebase) {
-      // Decrement availablePackages in localStorage for products that use package sale
+      // Decrement availablePackages / stock in localStorage, salvo productos hechos bajo pedido
       if (typeof window !== 'undefined') {
         const productsStore = JSON.parse(localStorage.getItem('mock_products') || '[]');
         order.items.forEach((item) => {
-          if (item.isPackageSale && !item.isMadeToOrder) {
-            const prod = productsStore.find((p: any) => p.id === item.productId);
-            if (prod) {
-              if (prod.packageOptions && prod.packageOptions.length > 0 && item.selectedPackageId) {
-                const opt = prod.packageOptions.find((o: any) => o.id === item.selectedPackageId);
-                if (opt) {
-                  opt.availablePackages = Math.max(0, (opt.availablePackages || 0) - item.cantidad);
-                }
-              } else {
-                prod.availablePackages = Math.max(0, (prod.availablePackages || 0) - item.cantidad);
+          if (item.isMadeToOrder) return;
+          const prod = productsStore.find((p: any) => p.id === item.productId);
+          if (!prod) return;
+
+          if (item.isPackageSale) {
+            if (prod.packageOptions && prod.packageOptions.length > 0 && item.selectedPackageId) {
+              const opt = prod.packageOptions.find((o: any) => o.id === item.selectedPackageId);
+              if (opt) {
+                opt.availablePackages = Math.max(0, (opt.availablePackages || 0) - item.cantidad);
               }
+            } else {
+              prod.availablePackages = Math.max(0, (prod.availablePackages || 0) - item.cantidad);
             }
+          } else {
+            prod.stock = Math.max(0, (prod.stock || 0) - item.cantidad);
           }
         });
         localStorage.setItem('mock_products', JSON.stringify(productsStore));
@@ -122,11 +125,14 @@ export class FirebaseOrderRepositoryImpl implements OrderRepository {
       return newOrder;
     }
 
-    // In real mode: decrement in Firestore
+    // In real mode: decrement in Firestore, salvo productos hechos bajo pedido
     for (const item of order.items) {
-      if (item.isPackageSale && !item.isMadeToOrder) {
-        try {
-          const productRef = doc(db, 'productos', item.productId);
+      if (item.isMadeToOrder) continue;
+
+      try {
+        const productRef = doc(db, 'productos', item.productId);
+
+        if (item.isPackageSale) {
           const productSnap = await getDoc(productRef);
           if (productSnap.exists()) {
             const prodData = productSnap.data();
@@ -147,9 +153,13 @@ export class FirebaseOrderRepositoryImpl implements OrderRepository {
               });
             }
           }
-        } catch (e) {
-          console.error("Error decrementing package stock:", e);
+        } else {
+          await updateDoc(productRef, {
+            stock: increment(-item.cantidad)
+          });
         }
+      } catch (e) {
+        console.error("Error decrementing stock:", e);
       }
     }
 

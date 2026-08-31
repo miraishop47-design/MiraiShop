@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCart } from '../context/CartContext';
@@ -63,9 +64,8 @@ export default function CartSidebar() {
             ) : (
               cart.map((item) => (
                 <div key={item.id} className="flex gap-4 items-center">
-                  <div className="w-16 h-16 bg-gray-50 dark:bg-gray-950 rounded-xl overflow-hidden flex-shrink-0 border border-gray-200/20">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={item.imagen} alt={item.nombre} className="w-full h-full object-cover" />
+                  <div className="relative w-16 h-16 bg-gray-50 dark:bg-gray-950 rounded-xl overflow-hidden flex-shrink-0 border border-gray-200/20">
+                    <Image src={item.imagen} alt={item.nombre} fill sizes="64px" className="object-cover" />
                   </div>
                   <div className="flex-grow min-w-0">
                     <h4 className="font-bold text-sm text-gray-900 dark:text-white truncate">{item.nombre}</h4>
@@ -109,7 +109,7 @@ export default function CartSidebar() {
               <div className="flex items-center justify-between font-bold text-gray-900 dark:text-white text-base">
                 <span>Total Estimado:</span>
                 <span className="text-indigo-600 dark:text-indigo-400">
-                  {showPrice && cartTotal > 0 ? formatCOP(cartTotal) : 'A convenir'}
+                  {!showPrice ? 'Inicia sesión para ver precio' : cartTotal > 0 ? formatCOP(cartTotal) : 'A convenir'}
                 </span>
               </div>
               

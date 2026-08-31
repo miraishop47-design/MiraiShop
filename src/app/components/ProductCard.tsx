@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { UIProduct } from '../../application/utils/productTransformer';
 import { useCart } from '../context/CartContext';
@@ -99,13 +100,12 @@ export default function ProductCard({ product }: ProductCardProps) {
 
       {/* Image Container */}
       <div className="relative h-40 sm:h-64 w-full bg-gray-100 dark:bg-gray-955 overflow-hidden flex-shrink-0">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={mainImage}
           alt={`${product.nombre} - MiraiShop`}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 will-change-transform"
-          loading="lazy"
-          decoding="async"
+          fill
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          className="object-cover transition-transform duration-700 group-hover:scale-110 will-change-transform"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         
@@ -168,7 +168,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                     </>
                   ) : (
                     <span className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 leading-tight">
-                      Precios por cotización
+                      {!showPrice ? 'Inicia sesión para ver precio' : 'Precios por cotización'}
                     </span>
                   )}
                 </div>

@@ -30,4 +30,5 @@ export interface Order {
   total: number;
   status: OrderStatus;
   createdAt?: any; // Firestore serverTimestamp or Date object
+  rouletteTicketGranted?: boolean;
 }

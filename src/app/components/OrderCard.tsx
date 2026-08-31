@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Order, OrderStatus } from '../../domain/entities/Order';
 import OrderStatusBadge from './OrderStatusBadge';
 import OrderEditModal from './OrderEditModal';
+import { grantRouletteSpin } from '../../application/services/rouletteService';
 
 interface OrderCardProps {
   order: Order;
@@ -17,6 +18,7 @@ export default function OrderCard({ order, onStatusChange, onUpdate, onDelete }:
   const [isUpdating, setIsUpdating] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isGrantingTicket, setIsGrantingTicket] = useState(false);
 
   const formatCOP = (value: number) =>
     new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value);
@@ -68,6 +70,20 @@ export default function OrderCard({ order, onStatusChange, onUpdate, onDelete }:
         setIsUpdating(false);
         setIsDeleteModalOpen(false);
       }
+    }
+  };
+
+  const handleConfirmTicket = async () => {
+    if (!order.id || !order.userId || order.userId === 'invitado') return;
+    try {
+      setIsGrantingTicket(true);
+      await grantRouletteSpin(order.userId);
+      await onUpdate(order.id, { rouletteTicketGranted: true });
+    } catch (err) {
+      console.error(err);
+      alert('No se pudo confirmar el ticket de la Ruleta de la Suerte.');
+    } finally {
+      setIsGrantingTicket(false);
     }
   };
 
@@ -160,8 +176,23 @@ export default function OrderCard({ order, onStatusChange, onUpdate, onDelete }:
           </select>
         </div>
 
-        {/* Action Buttons (Edit / Delete) */}
+        {/* Action Buttons (Ticket / Edit / Delete) */}
         <div className="flex items-center gap-2 mt-3 sm:mt-0 w-full sm:w-auto justify-end">
+          {order.userId && order.userId !== 'invitado' && (
+            order.rouletteTicketGranted ? (
+              <span className="px-4 py-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-bold flex items-center gap-1.5">
+                🎟️ Ticket otorgado
+              </span>
+            ) : (
+              <button
+                onClick={handleConfirmTicket}
+                disabled={isGrantingTicket}
+                className="px-4 py-1.5 bg-fuchsia-50 hover:bg-fuchsia-100 dark:bg-fuchsia-950/20 dark:hover:bg-fuchsia-900/30 text-fuchsia-600 dark:text-fuchsia-400 rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
+              >
+                {isGrantingTicket ? 'Otorgando...' : '🎟️ Confirmar ticket'}
+              </button>
+            )
+          )}
           <button
             onClick={() => setIsEditModalOpen(true)}
             className="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-bold transition-colors"

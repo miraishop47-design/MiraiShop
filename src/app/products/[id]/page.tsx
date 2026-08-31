@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import Link from 'next/link';
 import { productService } from '../../../application/services/productService';
 import { Product, PackageOption } from '../../../domain/entities/Product';
@@ -193,10 +194,13 @@ export default function ProductDetailPage() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
               </button>
 
-              <img
+              <Image
                 src={activeImage}
                 alt={`${product.nombre} - MiraiShop`}
-                className="max-h-full max-w-full object-contain relative z-10 transition-transform duration-700 group-hover:scale-105"
+                fill
+                sizes="(max-width: 1024px) 90vw, 45vw"
+                priority
+                className="object-contain z-10 transition-transform duration-700 group-hover:scale-105"
               />
 
               {isOutOfStock && (
@@ -229,10 +233,12 @@ export default function ProductDetailPage() {
                           : 'border-2 border-transparent hover:border-white/10 opacity-60 hover:opacity-100'
                       }`}
                     >
-                      <img
+                      <Image
                         src={imgUrl}
                         alt={`Vista ${idx + 1}`}
-                        className="w-full h-full object-cover bg-[#0B0D14]"
+                        fill
+                        sizes="80px"
+                        className="object-cover bg-[#0B0D14]"
                       />
                     </button>
                   ))}
@@ -277,16 +283,13 @@ export default function ProductDetailPage() {
 
             {/* Price */}
             <div className="mb-8">
-              <p className="text-5xl font-black text-[#8B5CF6] tracking-tight drop-shadow-sm">
-                {showPrice && (product.precio > 0 || (isPack && selectedPack && isReseller))
-                  ? formatCOP(isOutOfStock ? 0 : (isPack && selectedPack && isReseller ? selectedPack.wholesalePrice : product.precio))
-                  : 'A convenir'} 
+              <p className={`font-black text-[#8B5CF6] tracking-tight drop-shadow-sm ${!showPrice ? 'text-2xl' : 'text-5xl'}`}>
+                {!showPrice
+                  ? 'Inicia sesión para ver precio'
+                  : (product.precio > 0 || (isPack && selectedPack && isReseller))
+                    ? formatCOP(isOutOfStock ? 0 : (isPack && selectedPack && isReseller ? selectedPack.wholesalePrice : product.precio))
+                    : 'A convenir'}
               </p>
-              {!showPrice && (
-                <p className="text-sm text-[#8B5CF6] mt-2 font-medium bg-[#8B5CF6]/10 w-fit px-3 py-1 rounded-lg">
-                  El precio se calcula por cotización privada
-                </p>
-              )}
             </div>
 
             {/* Description */}
@@ -364,10 +367,12 @@ export default function ProductDetailPage() {
                   <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">
                     TOTAL A PAGAR
                   </span>
-                  <span className="text-3xl font-black text-white">
-                    {showPrice && (product.precio > 0 || (isPack && selectedPack && isReseller))
-                      ? formatCOP(isOutOfStock ? 0 : (isPack && selectedPack && isReseller ? selectedPack.wholesalePrice : product.precio) * activeQuantity)
-                      : 'A convenir'}
+                  <span className={`font-black text-white ${!showPrice ? 'text-base' : 'text-3xl'}`}>
+                    {!showPrice
+                      ? 'Inicia sesión para ver precio'
+                      : (product.precio > 0 || (isPack && selectedPack && isReseller))
+                        ? formatCOP(isOutOfStock ? 0 : (isPack && selectedPack && isReseller ? selectedPack.wholesalePrice : product.precio) * activeQuantity)
+                        : 'A convenir'}
                   </span>
                 </div>
               </div>
@@ -414,11 +419,10 @@ export default function ProductDetailPage() {
             {!showPrice && (
               <div className="mt-6 text-center">
                 <p className="text-xs text-gray-500">
-                  ¿Eres distribuidor?{' '}
                   <Link href="/auth/login" className="text-white hover:text-[#8B5CF6] underline underline-offset-4 transition-colors font-bold">
                     Inicia sesión
                   </Link>{' '}
-                  para ver precios reales.
+                  para ver el precio y comprar.
                 </p>
               </div>
             )}
@@ -477,10 +481,12 @@ export default function ProductDetailPage() {
             <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
               {isOutOfStock ? 'Agotado' : 'Total'}
             </span>
-            <span className="text-xl font-black text-white tracking-tighter">
-              {showPrice && (product.precio > 0 || (isPack && selectedPack && isReseller))
-                ? formatCOP(isOutOfStock ? 0 : (isPack && selectedPack && isReseller ? selectedPack.wholesalePrice : product.precio) * activeQuantity)
-                : 'A convenir'}
+            <span className={`font-black text-white tracking-tighter ${!showPrice ? 'text-xs whitespace-nowrap' : 'text-xl'}`}>
+              {!showPrice
+                ? 'Inicia sesión'
+                : (product.precio > 0 || (isPack && selectedPack && isReseller))
+                  ? formatCOP(isOutOfStock ? 0 : (isPack && selectedPack && isReseller ? selectedPack.wholesalePrice : product.precio) * activeQuantity)
+                  : 'A convenir'}
             </span>
           </div>
 
@@ -516,11 +522,15 @@ export default function ProductDetailPage() {
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
           </button>
-          <img 
-            src={activeImage} 
-            alt="Vista expandida" 
-            className="max-w-[95vw] max-h-[90vh] object-contain rounded-2xl shadow-[0_0_50px_rgba(139,92,246,0.15)]" 
-          />
+          <div className="relative w-[95vw] h-[90vh]">
+            <Image
+              src={activeImage}
+              alt="Vista expandida"
+              fill
+              sizes="95vw"
+              className="object-contain rounded-2xl shadow-[0_0_50px_rgba(139,92,246,0.15)]"
+            />
+          </div>
         </div>
       )}
     </div>
