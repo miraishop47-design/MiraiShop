@@ -113,7 +113,7 @@ export default function CalculadoraPage() {
 
   const costoLuz = (pwr / 1000) * tiempoTotal * pPrice;
   const costoProduccion = costoMaterialTotal + costoLuz;
-  const costoReposicion = costoMaterialTotal * 2;
+  const costoReposicion = costoProduccion;
   const ganancia = costoProduccion * (mrg / 100);
   const precioVentaTotal = costoProduccion + costoReposicion + ganancia;
   const precioVentaUnitario = precioVentaTotal / qty;
@@ -437,7 +437,7 @@ export default function CalculadoraPage() {
                 <div className="flex justify-between items-center bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50 rounded-xl p-4 border-l-4 border-l-amber-500 shadow-sm">
                   <div>
                     <h4 className="text-amber-700 dark:text-amber-500 font-semibold text-sm">Fondo de Reposición</h4>
-                    <p className="text-xs text-amber-600/70 dark:text-amber-500/70 mt-0.5">Costo del material usado multiplicado por 2</p>
+                    <p className="text-xs text-amber-600/70 dark:text-amber-500/70 mt-0.5">Costo base de producción multiplicado por 2</p>
                   </div>
                   <span className="text-lg font-black text-amber-700 dark:text-amber-500">{formatCOP(costoReposicion)}</span>
                 </div>
