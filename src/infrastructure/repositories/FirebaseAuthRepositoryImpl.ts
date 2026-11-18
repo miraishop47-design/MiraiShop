@@ -8,6 +8,7 @@ import {
   signOut 
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { grantRouletteSpin, setFirstSpinGuaranteed } from '../../application/services/rouletteService';
 
 export class FirebaseAuthRepositoryImpl implements AuthRepository {
   async login(email: string, password: string): Promise<User> {
@@ -83,6 +84,12 @@ export class FirebaseAuthRepositoryImpl implements AuthRepository {
       mockUsers.push(newUser);
       localStorage.setItem('mock_users', JSON.stringify(mockUsers));
 
+      // Cuenta mayorista nueva: regala un ticket de la Ruleta de la Suerte garantizado en 10%.
+      if (finalRole === 'reseller') {
+        await grantRouletteSpin(newUser.id);
+        await setFirstSpinGuaranteed(newUser.id, true);
+      }
+
       const loggedUser: User = {
         id: newUser.id,
         name: newUser.name,
@@ -113,6 +120,16 @@ export class FirebaseAuthRepositoryImpl implements AuthRepository {
       });
     } catch (error) {
       console.error("Firestore permission error when saving user profile:", error);
+    }
+
+    // Cuenta mayorista nueva: regala un ticket de la Ruleta de la Suerte garantizado en 10%.
+    if (finalRole === 'reseller') {
+      try {
+        await grantRouletteSpin(firebaseUser.uid);
+        await setFirstSpinGuaranteed(firebaseUser.uid, true);
+      } catch (error) {
+        console.error('Error otorgando ticket de bienvenida de la Ruleta de la Suerte:', error);
+      }
     }
 
     return {

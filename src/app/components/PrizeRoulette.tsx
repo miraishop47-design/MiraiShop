@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
-import { consumeRouletteSpin, grantRouletteSpin, subscribeRouletteSpins } from '../../application/services/rouletteService';
+import { consumeRouletteSpin, grantRouletteSpin, subscribeRouletteSpins, setFirstSpinGuaranteed, subscribeFirstSpinGuaranteed } from '../../application/services/rouletteService';
 
 const prizes = [
   { id: 0, label: 'Nada', short: 'Nada', color: '#9333EA', probability: 46, kind: 'lose' as const },
@@ -27,11 +27,16 @@ export default function PrizeRoulette() {
   const [rotation, setRotation] = useState(0);
   const [result, setResult] = useState<typeof prizes[0] | null>(null);
   const [spinsAvailable, setSpinsAvailable] = useState(0);
+  const [firstSpinGuaranteed, setFirstSpinGuaranteedState] = useState(false);
 
   const sliceAngle = 360 / prizes.length;
 
   useEffect(() => {
     return subscribeRouletteSpins(user?.id, setSpinsAvailable);
+  }, [user?.id]);
+
+  useEffect(() => {
+    return subscribeFirstSpinGuaranteed(user?.id, setFirstSpinGuaranteedState);
   }, [user?.id]);
 
   const spin = () => {
@@ -43,20 +48,30 @@ export default function PrizeRoulette() {
     setSpinsAvailable((prev) => Math.max(0, prev - 1));
     consumeRouletteSpin(user.id).catch((err) => console.error('Error consumiendo giro de ruleta:', err));
 
-    // Weighted random selection
-    const randomValue = Math.random() * 100;
-    let accumulated = 0;
-    let prizeIndex = 0;
+    let prizeIndex: number;
 
-    for (let i = 0; i < prizes.length; i++) {
-      accumulated += prizes[i].probability;
-      if (randomValue < accumulated) {
-        prizeIndex = i;
-        break;
+    if (firstSpinGuaranteed) {
+      // Mayorista nuevo sin pedidos previos: este primer giro cae garantizado en 10% de descuento.
+      // Se estabiliza de inmediato para que los siguientes giros vuelvan a ser aleatorios normales.
+      prizeIndex = prizes.findIndex((p) => p.label === '10% de descuento');
+      setFirstSpinGuaranteedState(false);
+      setFirstSpinGuaranteed(user.id, false).catch((err) => console.error('Error estabilizando giro garantizado:', err));
+    } else {
+      // Weighted random selection
+      const randomValue = Math.random() * 100;
+      let accumulated = 0;
+      prizeIndex = 0;
+
+      for (let i = 0; i < prizes.length; i++) {
+        accumulated += prizes[i].probability;
+        if (randomValue < accumulated) {
+          prizeIndex = i;
+          break;
+        }
       }
     }
 
-    const extraSpins = 6; 
+    const extraSpins = 6;
     
     const sliceCenterAngle = prizeIndex * sliceAngle + sliceAngle / 2;
     const targetRotation = (extraSpins * 360) + (360 - sliceCenterAngle);

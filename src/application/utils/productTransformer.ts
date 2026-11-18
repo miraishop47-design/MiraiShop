@@ -1,6 +1,11 @@
 import { Product, PackageOption } from '../../domain/entities/Product';
 
-export const ALLOWED_CATEGORIES = [
+/**
+ * Categorías base de la tienda. No se pueden borrar desde el panel porque
+ * el inicio (colecciones, carrusel) enlaza a varias de ellas. El admin puede
+ * crear categorías adicionales, que se guardan en la colección `categorias`.
+ */
+export const DEFAULT_CATEGORIES = [
   "Hogar",
   "Organización",
   "Gaming",
@@ -51,8 +56,10 @@ export function normalizeCategory(cat: string): string {
     return 'Personalizados';
   }
   
-  const matched = ALLOWED_CATEGORIES.find(c => c.toLowerCase() === cleanCat);
-  return matched || 'Accesorios';
+  const matched = DEFAULT_CATEGORIES.find(c => c.toLowerCase() === cleanCat);
+  // Cualquier otra categoría (p. ej. una creada por el admin, como "Navidad")
+  // se respeta tal cual en lugar de forzarla a "Accesorios".
+  return matched || cat.trim();
 }
 
 export interface UIProduct {

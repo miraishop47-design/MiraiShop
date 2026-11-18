@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
@@ -8,19 +8,12 @@ import { isAdminUser } from '../../application/utils/roles';
 import { productService } from '../../application/services/productService';
 import { Product, PackageOption } from '../../domain/entities/Product';
 import CustomCategorySelect from '../components/CustomCategorySelect';
+import CategoryManagerModal from '../components/CategoryManagerModal';
+import { useCategories } from '../hooks/useCategories';
+import { DEFAULT_CATEGORIES, normalizeCategory } from '../../application/utils/productTransformer';
+import { categorySlug } from '../../application/services/categoryService';
 
-const CATEGORIES = [
-  "Hogar",
-  "Organización",
-  "Gaming",
-  "Decoración",
-  "Oficina",
-  "Accesorios",
-  "Tecnología",
-  "Automotriz",
-  "Colección",
-  "Personalizados"
-];
+const DEFAULT_CATEGORY = DEFAULT_CATEGORIES[0];
 
 export default function AdminPage() {
   const { user, loading } = useAuth();
@@ -30,13 +23,33 @@ export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
 
+  // Categories
+  const { categories, custom: customCategories, error: categoriesError } = useCategories();
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+
+  const productCountsByCategory = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const p of products) {
+      const cat = normalizeCategory(p.categoria);
+      counts[cat] = (counts[cat] || 0) + 1;
+    }
+    return counts;
+  }, [products]);
+
+  const orphanCategories = useMemo(() => {
+    const known = new Set(categories.map(categorySlug));
+    return Object.keys(productCountsByCategory)
+      .filter((cat) => !known.has(categorySlug(cat)))
+      .sort((a, b) => a.localeCompare(b, 'es'));
+  }, [categories, productCountsByCategory]);
+
   // Form State
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     nombre: '',
     precioCliente: '',
     stock: '',
-    categoria: CATEGORIES[0],
+    categoria: DEFAULT_CATEGORY,
     descripcion: '',
     imagen: '',
     imagenes: [''],
@@ -179,7 +192,7 @@ export default function AdminPage() {
       nombre: '',
       precioCliente: '',
       stock: '',
-      categoria: CATEGORIES[0],
+      categoria: DEFAULT_CATEGORY,
       descripcion: '',
       imagen: '',
       imagenes: [''],
@@ -380,7 +393,7 @@ export default function AdminPage() {
         nombre: '',
         precioCliente: '',
         stock: '',
-        categoria: CATEGORIES[0],
+        categoria: DEFAULT_CATEGORY,
         descripcion: '',
         imagen: '',
         imagenes: [''],
@@ -433,6 +446,22 @@ export default function AdminPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => setIsCategoryModalOpen(true)}
+            className="relative inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold px-6 py-3 rounded-2xl shadow-lg shadow-amber-500/20 active:scale-95 transition-all text-sm"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5a1.99 1.99 0 011.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+            Categorías
+            {orphanCategories.length > 0 && (
+              <span
+                className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-red-500 border-2 border-white dark:border-gray-950 text-[10px] font-black flex items-center justify-center"
+                title="Hay categorías usadas por productos que no están registradas"
+              >
+                {orphanCategories.length}
+              </span>
+            )}
+          </button>
           <Link
             href="/admin/calculadora"
             className="inline-flex items-center gap-2 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white font-bold px-6 py-3 rounded-2xl shadow-lg shadow-teal-500/20 active:scale-95 transition-all text-sm"
@@ -537,7 +566,7 @@ export default function AdminPage() {
                 <div>
                   <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 ml-1">Categoría</label>
                   <CustomCategorySelect
-                    categories={CATEGORIES}
+                    categories={categories}
                     selected={form.categoria}
                     onChange={(val) => setForm(prev => ({ ...prev, categoria: val }))}
                   />
@@ -890,6 +919,16 @@ export default function AdminPage() {
           </div>
         </div>
       </div>
+
+      <CategoryManagerModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        categories={categories}
+        custom={customCategories}
+        productCounts={productCountsByCategory}
+        orphanCategories={orphanCategories}
+        loadError={categoriesError}
+      />
     </div>
   );
 }

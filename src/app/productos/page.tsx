@@ -7,6 +7,7 @@ import { Product } from '../../domain/entities/Product';
 import { productService } from '../../application/services/productService';
 import { useAuth } from '../context/AuthContext';
 import { transformProductForUser, UIProduct } from '../../application/utils/productTransformer';
+import { categorySlug } from '../../application/services/categoryService';
 import ProductCard from '../components/ProductCard';
 import ProductFilters from '../components/ProductFilters';
 
@@ -78,7 +79,7 @@ function ProductosListContent() {
       .map((p) => transformProductForUser(p, user?.role))
       .filter((p) => {
         // Category filter
-        if (selectedCategory && p.categoria !== selectedCategory) {
+        if (selectedCategory && categorySlug(p.categoria) !== categorySlug(selectedCategory)) {
           return false;
         }
         

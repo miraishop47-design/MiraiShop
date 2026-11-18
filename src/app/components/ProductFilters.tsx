@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ALLOWED_CATEGORIES } from '../../application/utils/productTransformer';
+import { useCategories } from '../hooks/useCategories';
 
 interface ProductFiltersProps {
   initialSearch?: string;
@@ -21,6 +21,7 @@ export default function ProductFilters({
   const [search, setSearch] = useState(initialSearch);
   const [category, setCategory] = useState(initialCategory);
   const [isOpen, setIsOpen] = useState(false);
+  const { categories } = useCategories();
 
   // Sync state if initial values change (e.g. on URL navigation)
   useEffect(() => {
@@ -132,7 +133,7 @@ export default function ProductFilters({
             )}
           </div>
           <div className="flex flex-wrap gap-2.5">
-            {ALLOWED_CATEGORIES.map((cat) => {
+            {categories.map((cat) => {
               const isSelected = category === cat;
               return (
                 <button
@@ -183,7 +184,7 @@ export default function ProductFilters({
             <div className="space-y-3 py-2">
               <span className="text-xs font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">Categorías</span>
               <div className="grid grid-cols-2 gap-2 max-h-[50vh] overflow-y-auto pr-1">
-                {ALLOWED_CATEGORIES.map((cat) => {
+                {categories.map((cat) => {
                   const isSelected = category === cat;
                   return (
                     <button
