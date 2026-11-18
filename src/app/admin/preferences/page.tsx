@@ -7,6 +7,9 @@ import { isAdminUser, isSuperAdminEmail } from '../../../application/utils/roles
 import { getPreferenceStats, PreferenceStats } from '../../../application/services/preferenceService';
 import { getAllUsers, updateUserRole, deleteUserRecord } from '../../../application/services/userService';
 import { User } from '../../../domain/entities/User';
+import ChangePasswordModal from '../../components/ChangePasswordModal';
+
+const FIREBASE_AUTH_USERS_URL = `https://console.firebase.google.com/project/${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}/authentication/users`;
 
 // ─── Colour palettes for categories ──────────────────────────────────────────
 const PALETTE = [
@@ -82,6 +85,8 @@ export default function AdminPreferencesPage() {
 
   const [users, setUsers] = useState<User[]>([]);
   const [fetchingUsers, setFetchingUsers] = useState(true);
+  const [passwordTarget, setPasswordTarget] = useState<User | null>(null);
+  const canChangePasswords = isSuperAdminEmail(user?.email);
 
   // Auth guard
   useEffect(() => {
@@ -135,10 +140,22 @@ export default function AdminPreferencesPage() {
   };
 
   const handleDeleteUser = async (userId: string, userEmail?: string) => {
-    if (!confirm('¿Estás seguro de que deseas eliminar a este usuario de la base de datos? Perderá sus roles y permisos permanentemente.')) return;
+    if (!confirm(
+      '¿Eliminar a este usuario del panel? Perderá su rol y sus permisos.\n\n' +
+      'Ojo: su cuenta de inicio de sesión sigue existiendo en Firebase Authentication. ' +
+      'Si vuelve a iniciar sesión, reaparecerá como cliente.'
+    )) return;
     try {
       await deleteUserRecord(userId, userEmail);
       setUsers(users.filter(u => u.id !== userId));
+      if (confirm(
+        'Perfil eliminado.\n\n' +
+        `Para borrar del todo la cuenta${userEmail ? ` de ${userEmail}` : ''} (y que pueda registrarse de nuevo con ese correo), ` +
+        'elimínala también en Firebase Console → Authentication → Usuarios.\n\n' +
+        '¿Abrir esa página ahora?'
+      )) {
+        window.open(FIREBASE_AUTH_USERS_URL, '_blank', 'noopener');
+      }
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Error eliminando usuario');
     }
@@ -397,7 +414,15 @@ export default function AdminPreferencesPage() {
                             </select>
                           )}
                         </td>
-                        <td className="py-4 px-4 text-right">
+                        <td className="py-4 px-4 text-right whitespace-nowrap space-x-2">
+                          {canChangePasswords && (
+                            <button
+                              onClick={() => setPasswordTarget(u)}
+                              className="px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-300 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/40 rounded-lg transition-colors"
+                            >
+                              Contraseña
+                            </button>
+                          )}
                           {!isSuperAdmin && (
                             <button
                               onClick={() => handleDeleteUser(u.id, u.email)}
@@ -416,6 +441,8 @@ export default function AdminPreferencesPage() {
           )}
         </div>
       </div>
+
+      <ChangePasswordModal key={passwordTarget?.id ?? 'none'} target={passwordTarget} onClose={() => setPasswordTarget(null)} />
 
       <style>{`
         .scrollbar-thin::-webkit-scrollbar { width: 4px; }

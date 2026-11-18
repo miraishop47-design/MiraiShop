@@ -48,6 +48,16 @@ export class FirebaseAuthRepositoryImpl implements AuthRepository {
         const userDoc = await getDoc(doc(db, 'usuarios', firebaseUser.uid));
         if (userDoc.exists()) {
           role = userDoc.data().role || 'customer';
+        } else {
+          // La cuenta existe en Authentication pero su perfil se borró desde
+          // el panel admin: se vuelve a crear como cliente para que aparezca
+          // otra vez en la gestión de usuarios.
+          await setDoc(doc(db, 'usuarios', firebaseUser.uid), {
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuario',
+            email: firebaseUser.email || '',
+            role: 'customer',
+          });
         }
       }
     } catch (error) {

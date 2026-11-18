@@ -55,7 +55,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role = 'admin';
           // Ensure admin role is always persisted in Firestore
           try {
-            await setDoc(doc(db, 'usuarios', firebaseUser.uid), { role: 'admin' }, { merge: true });
+            await setDoc(doc(db, 'usuarios', firebaseUser.uid), {
+              role: 'admin',
+              email: firebaseUser.email,
+              name: firebaseUser.displayName || 'Admin',
+            }, { merge: true });
           } catch (e) {
             console.error('Error persisting admin role', e);
           }

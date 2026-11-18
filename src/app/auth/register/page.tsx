@@ -10,6 +10,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'customer' | 'reseller'>('customer');
   const [error, setError] = useState('');
+  const [emailInUse, setEmailInUse] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { register } = useAuth();
@@ -17,6 +18,7 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setEmailInUse(false);
     setLoading(true);
     try {
       const user = await register(name, email, password, role);
@@ -25,7 +27,8 @@ export default function RegisterPage() {
     } catch (err: any) {
       let message = err.message;
       if (err.code === 'auth/email-already-in-use') {
-        message = 'El correo electrónico ya está en uso.';
+        message = 'Ya existe una cuenta con este correo.';
+        setEmailInUse(true);
       } else if (err.code === 'auth/invalid-email') {
         message = 'El correo electrónico no es válido.';
       } else if (err.code === 'auth/weak-password') {
@@ -57,6 +60,15 @@ export default function RegisterPage() {
         {error && (
           <div className="mb-6 p-4 bg-red-100/50 dark:bg-red-900/30 border border-red-500/50 rounded-2xl text-red-600 dark:text-red-400 text-sm font-medium text-center backdrop-blur-sm animate-pulse">
             {error}
+            {emailInUse && (
+              <span className="block mt-1">
+                ¿Quieres{' '}
+                <Link href="/auth/login" className="font-bold underline hover:text-red-500">
+                  iniciar sesión
+                </Link>
+                ?
+              </span>
+            )}
           </div>
         )}
 

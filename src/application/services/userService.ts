@@ -1,5 +1,5 @@
 import { collection, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { db, isMockFirebase } from '../../infrastructure/firebase/firebaseConfig';
+import { auth, db, isMockFirebase } from '../../infrastructure/firebase/firebaseConfig';
 import { User } from '../../domain/entities/User';
 import { isSuperAdminEmail } from '../utils/roles';
 
@@ -54,4 +54,34 @@ export async function deleteUserRecord(userId: string, userEmail?: string): Prom
 
   const userRef = doc(db, 'usuarios', userId);
   await deleteDoc(userRef);
+}
+
+/**
+ * Cambia la contraseña de otro usuario (solo superadmin). Se hace en el
+ * servidor con el SDK de administrador: desde el navegador no es posible.
+ */
+export async function changeUserPassword(userId: string, newPassword: string): Promise<void> {
+  if (isMockFirebase) {
+    const mockUsers = JSON.parse(localStorage.getItem('mock_users') || '[]');
+    const updatedUsers = mockUsers.map((u: any) => u.id === userId ? { ...u, password: newPassword } : u);
+    localStorage.setItem('mock_users', JSON.stringify(updatedUsers));
+    return;
+  }
+
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error('Tu sesión expiró. Vuelve a iniciar sesión.');
+  }
+  const token = await currentUser.getIdToken();
+
+  const res = await fetch('/api/admin/users/password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ uid: userId, password: newPassword }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'No se pudo cambiar la contraseña.');
+  }
 }
