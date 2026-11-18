@@ -31,4 +31,6 @@ export interface Order {
   status: OrderStatus;
   createdAt?: any; // Firestore serverTimestamp or Date object
   rouletteTicketGranted?: boolean;
+  /** Cuándo pidió el cliente (la solicitud); createdAt es cuando el admin la aceptó. */
+  requestedAt?: any;
 }

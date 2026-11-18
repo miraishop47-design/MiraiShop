@@ -1,10 +1,10 @@
 import { OrderRepository } from '../../domain/repositories/OrderRepository';
 import { Order, OrderStatus } from '../../domain/entities/Order';
 import { db, isMockFirebase } from './firebaseConfig';
+import { cleanUndefined, decrementStock, resolveOrderPrices } from './orderInventory';
 import { 
   collection, 
   addDoc, 
-  getDoc,
   getDocs, 
   updateDoc, 
   doc, 
@@ -12,7 +12,6 @@ import {
   serverTimestamp,
   query,
   orderBy,
-  increment,
   where,
   DocumentData
 } from 'firebase/firestore';
@@ -57,6 +56,8 @@ function orderFromDoc(id: string, data: DocumentData): Order {
     total: Number(data.total),
     status: data.status as OrderStatus,
     createdAt: data.createdAt,
+    requestedAt: data.requestedAt,
+    rouletteTicketGranted: data.rouletteTicketGranted,
   };
 }
 
@@ -80,84 +81,11 @@ export class FirebaseOrderRepositoryImpl implements OrderRepository {
     window.dispatchEvent(new Event('mock_orders_changed'));
   }
 
-  async create(order: Omit<Order, 'id' | 'createdAt' | 'status'>): Promise<Order> {
-    // Resolve prices if items have 0 price or if customer role is client
-    let resolvedSubtotal = 0;
-    let rawProducts: any[] = [];
-    if (isMockFirebase) {
-      if (typeof window !== 'undefined') {
-        rawProducts = JSON.parse(localStorage.getItem('mock_products') || '[]');
-      }
-    } else {
-      try {
-        const productDocs = await getDocs(collection(db, 'productos'));
-        productDocs.forEach((d) => {
-          rawProducts.push({ id: d.id, ...d.data() });
-        });
-      } catch (e) {
-        console.error("Error loading products to resolve order prices:", e);
-      }
-    }
-
-    const updatedItems = order.items.map((item) => {
-      const prod = rawProducts.find((p) => p.id === item.productId);
-      let price = item.precio;
-      
-      if (price <= 0 && prod) {
-        if (item.isPackageSale && item.selectedPackageId) {
-          const opt = prod.packageOptions?.find((o: any) => o.id === item.selectedPackageId);
-          if (opt) {
-            price = Number(opt.wholesalePrice || opt.precioPaquete || 0);
-          } else {
-            price = Number(prod.precioPaquete || prod.precioMayorista || 0);
-          }
-        } else {
-          price = Number(prod.precioMayorista || 0);
-        }
-      }
-      
-      const subtotal = price * item.cantidad;
-      resolvedSubtotal += subtotal;
-      
-      return {
-        ...item,
-        precio: price,
-        subtotal: subtotal,
-        precioPaquete: item.isPackageSale ? price : undefined,
-        isMadeToOrder: prod?.isMadeToOrder || false
-      };
-    });
-
-    order.items = updatedItems;
-    order.subtotal = resolvedSubtotal;
-    order.total = resolvedSubtotal;
+  async create(input: Omit<Order, 'id' | 'createdAt' | 'status'>): Promise<Order> {
+    const order = await resolveOrderPrices(input);
+    await decrementStock(order.items);
 
     if (isMockFirebase) {
-      // Decrement availablePackages / stock in localStorage, salvo productos hechos bajo pedido
-      if (typeof window !== 'undefined') {
-        const productsStore = JSON.parse(localStorage.getItem('mock_products') || '[]');
-        order.items.forEach((item) => {
-          if (item.isMadeToOrder) return;
-          const prod = productsStore.find((p: any) => p.id === item.productId);
-          if (!prod) return;
-
-          if (item.isPackageSale) {
-            if (prod.packageOptions && prod.packageOptions.length > 0 && item.selectedPackageId) {
-              const opt = prod.packageOptions.find((o: any) => o.id === item.selectedPackageId);
-              if (opt) {
-                opt.availablePackages = Math.max(0, (opt.availablePackages || 0) - item.cantidad);
-              }
-            } else {
-              prod.availablePackages = Math.max(0, (prod.availablePackages || 0) - item.cantidad);
-            }
-          } else {
-            prod.stock = Math.max(0, (prod.stock || 0) - item.cantidad);
-          }
-        });
-        localStorage.setItem('mock_products', JSON.stringify(productsStore));
-        window.dispatchEvent(new Event('mock_products_changed'));
-      }
-
       const orders = this.getMockOrders();
       const newOrder: Order = {
         id: `order-${Date.now()}`,
@@ -170,61 +98,8 @@ export class FirebaseOrderRepositoryImpl implements OrderRepository {
       return newOrder;
     }
 
-    // In real mode: decrement in Firestore, salvo productos hechos bajo pedido
-    for (const item of order.items) {
-      if (item.isMadeToOrder) continue;
-
-      try {
-        const productRef = doc(db, 'productos', item.productId);
-
-        if (item.isPackageSale) {
-          const productSnap = await getDoc(productRef);
-          if (productSnap.exists()) {
-            const prodData = productSnap.data();
-            if (prodData.packageOptions && item.selectedPackageId) {
-              const updatedOptions = (prodData.packageOptions as any[]).map((opt: any) => {
-                if (opt.id === item.selectedPackageId) {
-                  return {
-                    ...opt,
-                    availablePackages: Math.max(0, (opt.availablePackages || 0) - item.cantidad)
-                  };
-                }
-                return opt;
-              });
-              await updateDoc(productRef, { packageOptions: updatedOptions });
-            } else {
-              await updateDoc(productRef, {
-                availablePackages: increment(-item.cantidad)
-              });
-            }
-          }
-        } else {
-          await updateDoc(productRef, {
-            stock: increment(-item.cantidad)
-          });
-        }
-      } catch (e) {
-        console.error("Error decrementing stock:", e);
-      }
-    }
-
-    const cleanUndefined = (obj: any): any => {
-      if (Array.isArray(obj)) {
-        return obj.map(cleanUndefined);
-      } else if (obj !== null && typeof obj === 'object') {
-        return Object.fromEntries(
-          Object.entries(obj)
-            .filter(([_, v]) => v !== undefined)
-            .map(([k, v]) => [k, cleanUndefined(v)])
-        );
-      }
-      return obj;
-    };
-
-    const cleanOrder = cleanUndefined(order);
-
     const docRef = await addDoc(this.collectionRef, {
-      ...cleanOrder,
+      ...cleanUndefined(order),
       status: 'pendiente' as OrderStatus,
       createdAt: serverTimestamp()
     });
@@ -322,18 +197,6 @@ export class FirebaseOrderRepositoryImpl implements OrderRepository {
 
     const docRef = doc(db, 'orders', id);
     
-    const cleanUndefined = (obj: any): any => {
-      if (Array.isArray(obj)) {
-        return obj.map(cleanUndefined);
-      } else if (obj !== null && typeof obj === 'object') {
-        return Object.fromEntries(
-          Object.entries(obj)
-            .filter(([_, v]) => v !== undefined)
-            .map(([k, v]) => [k, cleanUndefined(v)])
-        );
-      }
-      return obj;
-    };
     
     const updatePayload = cleanUndefined({ ...data });
     delete updatePayload.id; // Prevent updating ID

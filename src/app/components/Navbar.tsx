@@ -6,12 +6,15 @@ import { isAdminUser } from '../../application/utils/roles';
 import { useCart } from '../context/CartContext';
 import { useFavorite } from '../context/FavoriteContext';
 import { useState, useEffect } from 'react';
+import { usePendingRequestsCount } from '../hooks/usePendingRequestsCount';
 
 export default function Navbar() {
   const { user, loading, logout } = useAuth();
   const { setIsCartOpen, cartItemsCount } = useCart();
   const { favorites } = useFavorite();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const isAdmin = !!user && isAdminUser(user);
+  const pendingRequests = usePendingRequestsCount(isAdmin);
 
   // Cerrar el menú al pasar a escritorio
   useEffect(() => {
@@ -53,6 +56,25 @@ export default function Navbar() {
             </div>
           </div>
           <div className="flex space-x-4 items-center">
+            {/* Notificaciones (solo admin): solicitudes de compra por confirmar */}
+            {isAdmin && (
+              <Link
+                href="/admin/notificaciones"
+                className="relative p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full text-gray-700 dark:text-gray-300 transition-colors"
+                title="Notificaciones"
+                aria-label={pendingRequests > 0 ? `Notificaciones: ${pendingRequests} por confirmar` : 'Notificaciones'}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                {pendingRequests > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-black min-w-5 h-5 px-1 rounded-full flex items-center justify-center border-2 border-white dark:border-gray-950 shadow-md">
+                    {pendingRequests > 99 ? '99+' : pendingRequests}
+                  </span>
+                )}
+              </Link>
+            )}
+
             {/* Favorites Trigger Button */}
             {user && (
               <Link
@@ -186,6 +208,16 @@ export default function Navbar() {
               {user && (
                 <Link href="/mis-pedidos" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center px-4 py-3.5 text-lg font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-xl transition-colors">
                   Mis pedidos
+                </Link>
+              )}
+              {isAdmin && (
+                <Link href="/admin/notificaciones" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center justify-between px-4 py-3.5 text-lg font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-xl transition-colors">
+                  Notificaciones
+                  {pendingRequests > 0 && (
+                    <span className="bg-red-500 text-white text-xs font-black min-w-6 h-6 px-1.5 rounded-full flex items-center justify-center">
+                      {pendingRequests}
+                    </span>
+                  )}
                 </Link>
               )}
               {user && isAdminUser(user) && (

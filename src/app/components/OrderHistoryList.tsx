@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 import { Order } from '../../domain/entities/Order';
-import OrderStatusBadge from './OrderStatusBadge';
 
 export const formatCOP = (value: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value || 0);
@@ -30,12 +29,15 @@ export function summarizeOrders(orders: Order[]) {
   };
 }
 
-function itemsLabel(order: Order) {
+/** Lo mínimo que necesita la lista: sirve para pedidos y para solicitudes. */
+type HistoryEntry = Pick<Order, 'id' | 'createdAt' | 'items' | 'total'>;
+
+function itemsLabel(order: HistoryEntry) {
   const units = order.items.reduce((n, i) => n + (i.cantidad || 0), 0);
   return `${units} ${units === 1 ? 'artículo' : 'artículos'}`;
 }
 
-function OrderRow({ order }: { order: Order }) {
+function OrderRow<T extends HistoryEntry>({ order, badge, label }: { order: T; badge: ReactNode; label: string }) {
   const [open, setOpen] = useState(false);
   const shortId = order.id ? order.id.slice(-6).toUpperCase() : '—';
 
@@ -48,12 +50,12 @@ function OrderRow({ order }: { order: Order }) {
         className="w-full flex flex-wrap items-center gap-x-4 gap-y-2 p-4 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
       >
         <div className="flex-1 min-w-[10rem]">
-          <p className="text-sm font-bold text-gray-900 dark:text-white">Pedido #{shortId}</p>
+          <p className="text-sm font-bold text-gray-900 dark:text-white">{label} #{shortId}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
             {formatOrderDate(order.createdAt)} · {itemsLabel(order)}
           </p>
         </div>
-        <OrderStatusBadge status={order.status} />
+        {badge}
         <p className="text-sm font-black text-gray-900 dark:text-white tabular-nums">{formatCOP(order.total)}</p>
         <svg
           className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
@@ -93,11 +95,19 @@ function OrderRow({ order }: { order: Order }) {
   );
 }
 
-export default function OrderHistoryList({ orders }: { orders: Order[] }) {
+export default function OrderHistoryList<T extends HistoryEntry>({
+  orders,
+  renderBadge,
+  label = 'Pedido',
+}: {
+  orders: T[];
+  renderBadge: (entry: T) => ReactNode;
+  label?: string;
+}) {
   return (
     <ul className="space-y-3">
       {orders.map((order) => (
-        <OrderRow key={order.id} order={order} />
+        <OrderRow key={order.id} order={order} badge={renderBadge(order)} label={label} />
       ))}
     </ul>
   );

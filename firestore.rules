@@ -100,13 +100,26 @@ service cloud.firestore {
     // orders — historial de compras.
     // Cada cliente solo lee sus propios pedidos (la app consulta con
     // where('userId', '==', uid)); el admin lee y gestiona todos.
-    // Al crear, el pedido debe quedar a nombre de quien compra.
+    // Solo el admin crea pedidos: nacen al aceptar una solicitud.
     // ─────────────────────────────────────────────────────────────
     match /orders/{orderId} {
       allow get, list: if isAdmin()
         || (isSignedIn() && resource.data.userId == request.auth.uid);
-      allow create: if isAdmin()
-        || (isSignedIn() && request.resource.data.userId == request.auth.uid);
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // solicitudes — compras enviadas por WhatsApp que esperan la
+    // aprobación del admin (Notificaciones). El cliente solo puede
+    // crearlas a su nombre y como 'pendiente', y leer las suyas.
+    // Aceptar/rechazar (update) es solo del admin.
+    // ─────────────────────────────────────────────────────────────
+    match /solicitudes/{requestId} {
+      allow get, list: if isAdmin()
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'pendiente';
       allow update, delete: if isAdmin();
     }
 

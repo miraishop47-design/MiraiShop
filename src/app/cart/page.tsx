@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { orderService } from '../../application/services/orderService';
+import { orderRequestService } from '../../application/services/orderRequestService';
 import { generateWhatsAppMessage } from '../../application/utils/generateWhatsAppMessage';
 
 export default function CartPage() {
@@ -16,6 +16,8 @@ export default function CartPage() {
   const [guestName, setGuestName] = useState('');
   const [isMounted, setIsMounted] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  // Id de la solicitud recién enviada: muestra la confirmación en vez del carrito vacío.
+  const [submittedRequestId, setSubmittedRequestId] = useState<string | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -90,7 +92,7 @@ export default function CartPage() {
         };
       });
 
-      const newOrder = {
+      const newRequest = {
         userId: user?.id || 'invitado',
         customerName: clientName,
         customerEmail: user?.email || 'invitado@mirai.shop',
@@ -100,14 +102,16 @@ export default function CartPage() {
         total: cartTotal
       };
 
-      const savedOrder = await orderService.createOrder(newOrder);
-      if (!savedOrder.id) {
+      // No se crea el pedido todavía: queda como solicitud hasta que un admin
+      // la acepte desde Notificaciones.
+      const savedRequest = await orderRequestService.createRequest(newRequest);
+      if (!savedRequest.id) {
         throw new Error('No se pudo generar el ID de registro de Firestore.');
       }
 
       const accountType = getAccountTypeLabel(user?.role);
       const whatsappUrl = generateWhatsAppMessage(
-        savedOrder.id,
+        savedRequest.id,
         clientName,
         accountType,
         cart,
@@ -116,6 +120,7 @@ export default function CartPage() {
       );
 
       clearCart();
+      setSubmittedRequestId(savedRequest.id);
 
       if (waWindow && !waWindow.closed) {
         // Caso normal: reutilizamos la pestaña que ya habíamos abierto.
@@ -133,6 +138,37 @@ export default function CartPage() {
       setIsCheckingOut(false);
     }
   };
+
+  if (cart.length === 0 && submittedRequestId) {
+    return (
+      <div className="max-w-xl mx-auto px-4 py-20 text-center space-y-5">
+        <div className="mx-auto w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+          <svg className="w-8 h-8 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h1 className="text-3xl font-black text-gray-900 dark:text-white">Solicitud enviada</h1>
+        <p className="text-gray-500 dark:text-gray-400">
+          Tu solicitud <span className="font-bold text-gray-700 dark:text-gray-200">#{submittedRequestId.slice(-6).toUpperCase()}</span> está
+          esperando la confirmación de MiraiShop. Cuando la aceptemos quedará registrada como pedido.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+          <Link
+            href="/mis-pedidos"
+            className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold px-6 py-3 rounded-2xl text-sm"
+          >
+            Ver mis pedidos
+          </Link>
+          <Link
+            href="/productos"
+            className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold px-6 py-3 rounded-2xl text-sm"
+          >
+            Seguir comprando
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (cart.length === 0) {
     return (

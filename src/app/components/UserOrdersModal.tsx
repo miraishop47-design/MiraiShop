@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { orderService } from '../../application/services/orderService';
 import { Order } from '../../domain/entities/Order';
 import OrderHistoryList, { formatCOP, formatOrderDate, summarizeOrders } from './OrderHistoryList';
+import OrderStatusBadge from './OrderStatusBadge';
 
 interface UserOrdersModalProps {
   target: { id: string; name: string; email: string } | null;
@@ -106,7 +107,7 @@ export default function UserOrdersModal({ target, onClose }: UserOrdersModalProp
                   <dd className="text-sm font-bold text-gray-900 dark:text-white mt-1">{formatOrderDate(lastOrder?.createdAt)}</dd>
                 </div>
               </dl>
-              <OrderHistoryList orders={orders} />
+              <OrderHistoryList orders={orders} renderBadge={(o) => <OrderStatusBadge status={o.status} />} />
             </>
           )}
         </div>

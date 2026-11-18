@@ -13,7 +13,7 @@ export function generateWhatsAppMessage(
   total: number,
   isReseller?: boolean
 ): string {
-  const header = `Hola Mirai Shop \n\nHe registrado el pedido Nro: #${orderId}\n\nDetalle del pedido:\n`;
+  const header = `Hola Mirai Shop \n\nEnvié la solicitud de pedido Nro: #${orderId}\n\nDetalle del pedido:\n`;
   
   const itemsList = items
     .map(item => {
