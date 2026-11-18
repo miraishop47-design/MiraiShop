@@ -1,10 +1,12 @@
 import 'server-only';
-import { cert, getApp, getApps, initializeApp } from 'firebase-admin/app';
+import { App, cert, getApp, getApps, initializeApp } from 'firebase-admin/app';
 import { Auth, getAuth } from 'firebase-admin/auth';
+import { Firestore, getFirestore } from 'firebase-admin/firestore';
 
 /**
  * SDK de administrador de Firebase. Solo corre en el servidor (API routes),
- * nunca en el navegador: usa la clave privada de una cuenta de servicio.
+ * nunca en el navegador: usa la clave privada de una cuenta de servicio y se
+ * salta las reglas de Firestore.
  *
  * Variables de entorno necesarias (en .env.local y en Vercel):
  *   FIREBASE_ADMIN_CLIENT_EMAIL  -> "client_email" del JSON de la cuenta de servicio
@@ -13,7 +15,7 @@ import { Auth, getAuth } from 'firebase-admin/auth';
  */
 const ADMIN_APP_NAME = 'mirai-admin';
 
-export function getAdminAuth(): Auth | null {
+function getAdminApp(): App | null {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
   // En Vercel/.env la clave suele guardarse con "\n" literales.
@@ -21,9 +23,17 @@ export function getAdminAuth(): Auth | null {
 
   if (!projectId || !clientEmail || !privateKey) return null;
 
-  const app = getApps().some((a) => a.name === ADMIN_APP_NAME)
+  return getApps().some((a) => a.name === ADMIN_APP_NAME)
     ? getApp(ADMIN_APP_NAME)
     : initializeApp({ credential: cert({ projectId, clientEmail, privateKey }), projectId }, ADMIN_APP_NAME);
+}
 
-  return getAuth(app);
+export function getAdminAuth(): Auth | null {
+  const app = getAdminApp();
+  return app ? getAuth(app) : null;
+}
+
+export function getAdminFirestore(): Firestore | null {
+  const app = getAdminApp();
+  return app ? getFirestore(app) : null;
 }

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { isAdminUser, isSuperAdminEmail } from '../../../application/utils/roles';
 import { getPreferenceStats, PreferenceStats } from '../../../application/services/preferenceService';
-import { getAllUsers, updateUserRole, deleteUserRecord } from '../../../application/services/userService';
+import { getAllUsers, updateUserRole, deleteUserRecord, deleteUserProfileOnly, AdminNotConfiguredError } from '../../../application/services/userService';
 import { User } from '../../../domain/entities/User';
 import ChangePasswordModal from '../../components/ChangePasswordModal';
 import UserOrdersModal from '../../components/UserOrdersModal';
@@ -142,23 +142,33 @@ export default function AdminPreferencesPage() {
   };
 
   const handleDeleteUser = async (userId: string, userEmail?: string) => {
+    const who = userEmail || 'este usuario';
     if (!confirm(
-      '¿Eliminar a este usuario del panel? Perderá su rol y sus permisos.\n\n' +
-      'Ojo: su cuenta de inicio de sesión sigue existiendo en Firebase Authentication. ' +
-      'Si vuelve a iniciar sesión, reaparecerá como cliente.'
+      `¿Eliminar a ${who}?\n\n` +
+      'Se borrará su cuenta de inicio de sesión (Firebase Authentication), su perfil, favoritos y preferencias. ' +
+      'Podrá volver a registrarse con ese correo. Sus pedidos se conservan.\n\nEsto no se puede deshacer.'
     )) return;
     try {
       await deleteUserRecord(userId, userEmail);
       setUsers(users.filter(u => u.id !== userId));
-      if (confirm(
-        'Perfil eliminado.\n\n' +
-        `Para borrar del todo la cuenta${userEmail ? ` de ${userEmail}` : ''} (y que pueda registrarse de nuevo con ese correo), ` +
-        'elimínala también en Firebase Console → Authentication → Usuarios.\n\n' +
-        '¿Abrir esa página ahora?'
-      )) {
-        window.open(FIREBASE_AUTH_USERS_URL, '_blank', 'noopener');
-      }
     } catch (e) {
+      if (e instanceof AdminNotConfiguredError) {
+        // Sin la clave de servicio el servidor no puede tocar Authentication.
+        if (!confirm(
+          'No se pudo borrar la cuenta de inicio de sesión: el servidor no tiene configuradas las credenciales de administrador de Firebase.\n\n' +
+          '¿Borrar solo su perfil del panel? La cuenta seguirá existiendo en Authentication y tendrás que eliminarla en Firebase Console.'
+        )) return;
+        try {
+          await deleteUserProfileOnly(userId, userEmail);
+          setUsers(users.filter(u => u.id !== userId));
+          if (confirm('Perfil eliminado. ¿Abrir Firebase Console → Authentication para borrar la cuenta?')) {
+            window.open(FIREBASE_AUTH_USERS_URL, '_blank', 'noopener');
+          }
+        } catch (err) {
+          alert(err instanceof Error ? err.message : 'Error eliminando usuario');
+        }
+        return;
+      }
       alert(e instanceof Error ? e.message : 'Error eliminando usuario');
     }
   };

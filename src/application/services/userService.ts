@@ -40,6 +40,42 @@ export async function updateUserRole(userId: string, newRole: 'admin' | 'custome
   });
 }
 
+/** El servidor no tiene la clave de servicio de Firebase: no puede tocar Authentication. */
+export class AdminNotConfiguredError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AdminNotConfiguredError';
+  }
+}
+
+async function callAdminApi(path: string, body: unknown): Promise<void> {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error('Tu sesión expiró. Vuelve a iniciar sesión.');
+  }
+  const token = await currentUser.getIdToken();
+
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    if (data.code === 'admin-not-configured') {
+      throw new AdminNotConfiguredError(data.error);
+    }
+    throw new Error(data.error || 'No se pudo completar la operación.');
+  }
+}
+
+/**
+ * Elimina al usuario por completo: cuenta de Firebase Authentication (para
+ * que pueda registrarse de nuevo con ese correo), perfil, favoritos y
+ * preferencias. Se hace en el servidor; los pedidos se conservan.
+ * Lanza AdminNotConfiguredError si el servidor no tiene la clave de servicio.
+ */
 export async function deleteUserRecord(userId: string, userEmail?: string): Promise<void> {
   if (isSuperAdminEmail(userEmail)) {
     throw new Error('La cuenta superadmin no puede ser eliminada.');
@@ -52,8 +88,18 @@ export async function deleteUserRecord(userId: string, userEmail?: string): Prom
     return;
   }
 
-  const userRef = doc(db, 'usuarios', userId);
-  await deleteDoc(userRef);
+  await callAdminApi('/api/admin/users/delete', { uid: userId });
+}
+
+/**
+ * Plan B cuando el servidor no tiene la clave de servicio: borra solo el
+ * perfil en Firestore. La cuenta de Authentication sigue existiendo.
+ */
+export async function deleteUserProfileOnly(userId: string, userEmail?: string): Promise<void> {
+  if (isSuperAdminEmail(userEmail)) {
+    throw new Error('La cuenta superadmin no puede ser eliminada.');
+  }
+  await deleteDoc(doc(db, 'usuarios', userId));
 }
 
 /**
@@ -68,20 +114,5 @@ export async function changeUserPassword(userId: string, newPassword: string): P
     return;
   }
 
-  const currentUser = auth.currentUser;
-  if (!currentUser) {
-    throw new Error('Tu sesión expiró. Vuelve a iniciar sesión.');
-  }
-  const token = await currentUser.getIdToken();
-
-  const res = await fetch('/api/admin/users/password', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ uid: userId, password: newPassword }),
-  });
-
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || 'No se pudo cambiar la contraseña.');
-  }
+  await callAdminApi('/api/admin/users/password', { uid: userId, password: newPassword });
 }
