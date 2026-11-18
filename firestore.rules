@@ -97,17 +97,16 @@ service cloud.firestore {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // orders
-    // NOTA: hoy la app consulta la colección completa sin filtrar por
-    // usuario, por eso 'list' está abierto a cualquier sesión iniciada.
-    // Cuando filtres por userId, cámbialo a:
-    //   allow list: if isAdmin()
-    //     || (isSignedIn() && request.query.limit <= 100);
-    // y aplica un where('userId','==',request.auth.uid) en el cliente.
+    // orders — historial de compras.
+    // Cada cliente solo lee sus propios pedidos (la app consulta con
+    // where('userId', '==', uid)); el admin lee y gestiona todos.
+    // Al crear, el pedido debe quedar a nombre de quien compra.
     // ─────────────────────────────────────────────────────────────
     match /orders/{orderId} {
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn();
+      allow get, list: if isAdmin()
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isAdmin()
+        || (isSignedIn() && request.resource.data.userId == request.auth.uid);
       allow update, delete: if isAdmin();
     }
 

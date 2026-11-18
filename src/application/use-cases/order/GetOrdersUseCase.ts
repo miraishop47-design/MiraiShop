@@ -11,4 +11,8 @@ export class GetOrdersUseCase {
   subscribe(callback: (orders: Order[]) => void): () => void {
     return this.orderRepository.subscribeToAll(callback);
   }
+
+  subscribeByUser(userId: string, callback: (orders: Order[]) => void, onError?: (error: Error) => void): () => void {
+    return this.orderRepository.subscribeByUser(userId, callback, onError);
+  }
 }

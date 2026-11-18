@@ -27,6 +27,10 @@ export const orderService = {
     return getOrdersUseCase.subscribe(callback);
   },
 
+  subscribeUserOrders(userId: string, callback: (orders: Order[]) => void, onError?: (error: Error) => void): () => void {
+    return getOrdersUseCase.subscribeByUser(userId, callback, onError);
+  },
+
   async updateOrderStatus(id: string, status: OrderStatus): Promise<void> {
     return updateOrderStatusUseCase.execute(id, status);
   },

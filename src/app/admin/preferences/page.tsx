@@ -8,6 +8,7 @@ import { getPreferenceStats, PreferenceStats } from '../../../application/servic
 import { getAllUsers, updateUserRole, deleteUserRecord } from '../../../application/services/userService';
 import { User } from '../../../domain/entities/User';
 import ChangePasswordModal from '../../components/ChangePasswordModal';
+import UserOrdersModal from '../../components/UserOrdersModal';
 
 const FIREBASE_AUTH_USERS_URL = `https://console.firebase.google.com/project/${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}/authentication/users`;
 
@@ -86,6 +87,7 @@ export default function AdminPreferencesPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [fetchingUsers, setFetchingUsers] = useState(true);
   const [passwordTarget, setPasswordTarget] = useState<User | null>(null);
+  const [ordersTarget, setOrdersTarget] = useState<User | null>(null);
   const canChangePasswords = isSuperAdminEmail(user?.email);
 
   // Auth guard
@@ -415,6 +417,12 @@ export default function AdminPreferencesPage() {
                           )}
                         </td>
                         <td className="py-4 px-4 text-right whitespace-nowrap space-x-2">
+                          <button
+                            onClick={() => setOrdersTarget(u)}
+                            className="px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 rounded-lg transition-colors"
+                          >
+                            Historial
+                          </button>
                           {canChangePasswords && (
                             <button
                               onClick={() => setPasswordTarget(u)}
@@ -442,6 +450,7 @@ export default function AdminPreferencesPage() {
         </div>
       </div>
 
+      <UserOrdersModal key={`orders-${ordersTarget?.id ?? 'none'}`} target={ordersTarget} onClose={() => setOrdersTarget(null)} />
       <ChangePasswordModal key={passwordTarget?.id ?? 'none'} target={passwordTarget} onClose={() => setPasswordTarget(null)} />
 
       <style>{`

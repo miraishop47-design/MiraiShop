@@ -12,8 +12,53 @@ import {
   serverTimestamp,
   query,
   orderBy,
-  increment
+  increment,
+  where,
+  DocumentData
 } from 'firebase/firestore';
+
+function toMillis(value: any): number {
+  if (!value) return 0;
+  if (typeof value.toMillis === 'function') return value.toMillis();
+  if (typeof value.seconds === 'number') return value.seconds * 1000;
+  const ms = new Date(value).getTime();
+  return Number.isNaN(ms) ? 0 : ms;
+}
+
+/** Más recientes primero. */
+function sortByNewest(orders: Order[]): Order[] {
+  return [...orders].sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt));
+}
+
+function orderFromDoc(id: string, data: DocumentData): Order {
+  return {
+    id,
+    userId: data.userId,
+    customerName: data.customerName,
+    customerEmail: data.customerEmail,
+    customerRole: data.customerRole,
+    customerPhone: data.customerPhone,
+    customerAddress: data.customerAddress,
+    customerNotes: data.customerNotes,
+    items: (data.items || []).map((item: any) => ({
+      productId: item.productId,
+      nombre: item.nombre,
+      imagen: item.imagen,
+      precio: Number(item.precio),
+      cantidad: Number(item.cantidad),
+      subtotal: Number(item.subtotal),
+      isPackageSale: item.isPackageSale || false,
+      packageQuantity: item.packageQuantity !== undefined ? Number(item.packageQuantity) : undefined,
+      unitsPerPackage: item.unitsPerPackage !== undefined ? Number(item.unitsPerPackage) : undefined,
+      totalUnits: item.totalUnits !== undefined ? Number(item.totalUnits) : undefined,
+      precioPaquete: item.precioPaquete !== undefined ? Number(item.precioPaquete) : undefined,
+    })),
+    subtotal: Number(data.subtotal),
+    total: Number(data.total),
+    status: data.status as OrderStatus,
+    createdAt: data.createdAt,
+  };
+}
 
 export class FirebaseOrderRepositoryImpl implements OrderRepository {
   private collectionRef = collection(db, 'orders');
@@ -199,34 +244,7 @@ export class FirebaseOrderRepositoryImpl implements OrderRepository {
     const querySnapshot = await getDocs(q);
     const orders: Order[] = [];
     querySnapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      orders.push({
-        id: docSnap.id,
-        userId: data.userId,
-        customerName: data.customerName,
-        customerEmail: data.customerEmail,
-        customerRole: data.customerRole,
-        customerPhone: data.customerPhone,
-        customerAddress: data.customerAddress,
-        customerNotes: data.customerNotes,
-        items: (data.items || []).map((item: any) => ({
-          productId: item.productId,
-          nombre: item.nombre,
-          imagen: item.imagen,
-          precio: Number(item.precio),
-          cantidad: Number(item.cantidad),
-          subtotal: Number(item.subtotal),
-          isPackageSale: item.isPackageSale || false,
-          packageQuantity: item.packageQuantity !== undefined ? Number(item.packageQuantity) : undefined,
-          unitsPerPackage: item.unitsPerPackage !== undefined ? Number(item.unitsPerPackage) : undefined,
-          totalUnits: item.totalUnits !== undefined ? Number(item.totalUnits) : undefined,
-          precioPaquete: item.precioPaquete !== undefined ? Number(item.precioPaquete) : undefined,
-        })),
-        subtotal: Number(data.subtotal),
-        total: Number(data.total),
-        status: data.status as OrderStatus,
-        createdAt: data.createdAt,
-      });
+      orders.push(orderFromDoc(docSnap.id, docSnap.data()));
     });
     return orders;
   }
@@ -247,39 +265,33 @@ export class FirebaseOrderRepositoryImpl implements OrderRepository {
     return onSnapshot(q, (querySnapshot) => {
       const orders: Order[] = [];
       querySnapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        orders.push({
-          id: docSnap.id,
-          userId: data.userId,
-          customerName: data.customerName,
-          customerEmail: data.customerEmail,
-          customerRole: data.customerRole,
-          customerPhone: data.customerPhone,
-          customerAddress: data.customerAddress,
-          customerNotes: data.customerNotes,
-          items: (data.items || []).map((item: any) => ({
-            productId: item.productId,
-            nombre: item.nombre,
-            imagen: item.imagen,
-            precio: Number(item.precio),
-            cantidad: Number(item.cantidad),
-            subtotal: Number(item.subtotal),
-            isPackageSale: item.isPackageSale || false,
-            packageQuantity: item.packageQuantity !== undefined ? Number(item.packageQuantity) : undefined,
-            unitsPerPackage: item.unitsPerPackage !== undefined ? Number(item.unitsPerPackage) : undefined,
-            totalUnits: item.totalUnits !== undefined ? Number(item.totalUnits) : undefined,
-            precioPaquete: item.precioPaquete !== undefined ? Number(item.precioPaquete) : undefined,
-          })),
-          subtotal: Number(data.subtotal),
-          total: Number(data.total),
-          status: data.status as OrderStatus,
-          createdAt: data.createdAt,
-        });
+        orders.push(orderFromDoc(docSnap.id, docSnap.data()));
       });
       callback(orders);
     }, (error) => {
       console.error("Error subscribing to orders:", error);
     });
+  }
+
+  subscribeByUser(userId: string, callback: (orders: Order[]) => void, onError?: (error: Error) => void): () => void {
+    if (isMockFirebase) {
+      const emit = () => callback(sortByNewest(this.getMockOrders().filter((o) => o.userId === userId)));
+      emit();
+      window.addEventListener('mock_orders_changed', emit);
+      return () => window.removeEventListener('mock_orders_changed', emit);
+    }
+
+    // Sin orderBy para no requerir un índice compuesto (userId + createdAt):
+    // se ordena en el cliente, los pedidos de una persona son pocos.
+    const q = query(this.collectionRef, where('userId', '==', userId));
+    return onSnapshot(
+      q,
+      (snap) => callback(sortByNewest(snap.docs.map((d) => orderFromDoc(d.id, d.data())))),
+      (error) => {
+        console.error('Error subscribing to user orders:', error);
+        onError?.(error);
+      }
+    );
   }
 
   async updateStatus(id: string, status: OrderStatus): Promise<void> {

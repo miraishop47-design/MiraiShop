@@ -40,6 +40,11 @@ export default function Navbar() {
               <Link href="/productos" className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                 Productos
               </Link>
+              {user && (
+                <Link href="/mis-pedidos" className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                  Mis pedidos
+                </Link>
+              )}
               {user && isAdminUser(user) && (
                 <Link href="/admin" className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                   Administrar
@@ -176,6 +181,11 @@ export default function Navbar() {
               {user && (
                 <Link href="/favoritos" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center px-4 py-3.5 text-lg font-bold text-pink-600 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-900/30 rounded-xl transition-colors">
                   Mis Favoritos
+                </Link>
+              )}
+              {user && (
+                <Link href="/mis-pedidos" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center px-4 py-3.5 text-lg font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-xl transition-colors">
+                  Mis pedidos
                 </Link>
               )}
               {user && isAdminUser(user) && (
